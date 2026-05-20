@@ -1,4 +1,3 @@
-import { Button, Top } from "@toss/tds-mobile";
 import { useRef, useState } from "react";
 import "./App.css";
 import { analyzeWithRules } from "./features/analyzer/ruleBasedAnalyzer";
@@ -6,6 +5,7 @@ import type { JudgmentResult } from "./features/analyzer/types";
 import { InputHome } from "./features/input/InputHome";
 import { inputMethods, type InputMethod } from "./features/input/inputMethods";
 import { TextReview } from "./features/input/TextReview";
+import { ResultScreen } from "./features/result/ResultScreen";
 
 type AppState =
   | { screen: "home" }
@@ -15,7 +15,7 @@ type AppState =
       initialText: string;
       helperText?: string;
     }
-  | { screen: "result"; submittedText: string; result: JudgmentResult };
+  | { screen: "result"; result: JudgmentResult };
 
 const starterSampleText = `A: 너는 항상 내 말은 안 듣잖아.
 B: 미안해. 말이 셌던 건 인정해.
@@ -62,7 +62,7 @@ function App() {
       return;
     }
 
-    setState({ screen: "result", submittedText: text, result });
+    setState({ screen: "result", result });
   };
 
   if (state.screen === "review") {
@@ -77,39 +77,7 @@ function App() {
   }
 
   if (state.screen === "result") {
-    return (
-      <main className="screen screen--review">
-        <Top
-          title={<Top.TitleParagraph size={22}>임시 판정 결과</Top.TitleParagraph>}
-          subtitleBottom={
-            <Top.SubtitleParagraph size={15}>
-              결과 화면은 다음 작업에서 다듬을 예정이에요.
-            </Top.SubtitleParagraph>
-          }
-        />
-        <section className="text-review" aria-label="임시 판정 결과">
-          <pre>
-            {JSON.stringify(
-              {
-                text: state.submittedText,
-                result: state.result,
-              },
-              null,
-              2,
-            )}
-          </pre>
-        </section>
-        <div className="action-row">
-          <Button
-            type="button"
-            variant="weak"
-            onClick={goHome}
-          >
-            처음으로
-          </Button>
-        </div>
-      </main>
-    );
+    return <ResultScreen result={state.result} onRestart={goHome} />;
   }
 
   return <InputHome onSelect={handleSelect} />;
