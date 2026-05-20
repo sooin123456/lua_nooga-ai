@@ -356,7 +356,56 @@ describe("App text review flow", () => {
       expect(screen.getByText("누가 잘못 AI")).toBeInTheDocument();
     });
 
-    expect(screen.queryByText("임시 판정 결과")).not.toBeInTheDocument();
+    expect(screen.queryByText("임시 판독 결과")).not.toBeInTheDocument();
+  });
+
+  it("shows free verdict result with reward and premium preview sections", async () => {
+    const user = userEvent.setup();
+    vi.mocked(analyzeWithRules).mockResolvedValue({
+      verdict: "A가 55% 정도 더 선 넘었어요",
+      partyAPercent: 55,
+      partyBPercent: 45,
+      reasons: ["첫 번째 이유", "두 번째 이유", "세 번째 이유"],
+      advice: "천천히 다시 이야기해 보세요.",
+      safetyLevel: "normal",
+    });
+
+    render(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByText("누가 잘못 AI")).toBeInTheDocument();
+    expect(screen.getByText("미스 노짱이 판독해드립니다")).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: /무료\s*판독\s*받기/ }),
+    );
+
+    expect(await screen.findByText("오늘의 판결")).toBeInTheDocument();
+    expect(screen.getByText("이긴 사람 보상 추천")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "결제 없이 판례 판독 미리보기" }),
+    ).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("이긴 사람이 받고 싶은 것"), "달달한 거");
+    await user.click(screen.getByRole("button", { name: "보상 추천 받기" }));
+
+    expect(screen.getByText("디저트/간식")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "토스 쇼핑 연결 준비 중" }),
+    ).toBeDisabled();
+
+    await user.click(
+      screen.getByRole("button", { name: "결제 없이 판례 판독 미리보기" }),
+    );
+
+    expect(screen.getByText("인앱결제 연결 예정")).toBeInTheDocument();
+    expect(screen.getByText("판례 검색 서버 연결 예정")).toBeInTheDocument();
   });
 
   it("shows a manual transcription message when starting the recording flow", async () => {
