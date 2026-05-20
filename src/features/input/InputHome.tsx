@@ -10,19 +10,22 @@ export function InputHome({ onSelect }: InputHomeProps) {
   return (
     <main className="screen screen--home">
       <Top
-        title={<Top.TitleParagraph size={28}>미스터 노우</Top.TitleParagraph>}
+        title={<Top.TitleParagraph size={28}>누가 잘못 AI</Top.TitleParagraph>}
         subtitleBottom={
           <Top.SubtitleParagraph size={15}>
-            싸움의 증거를 내면, 귀여운 심판이 퍼센티지로 판정해요.
+            미스 노짱이 판독해드립니다
           </Top.SubtitleParagraph>
         }
       />
 
-      <section className="hero-panel" aria-label="미스터 노우 소개">
+      <section className="hero-panel" aria-label="누가 잘못 AI 소개">
         <MrKnowMascot />
         <div>
-          <p className="eyebrow">오늘의 판정 대기 중</p>
-          <h1>누가 얼마나 선 넘었는지 볼까요?</h1>
+          <p className="eyebrow">싸움 판독 자체는 무료예요</p>
+          <h1>990원 내면 판례까지 뒤져드립니다</h1>
+          <p className="hero-panel__note">
+            무료로는 가볍게, 유료로는 더 그럴듯하게.
+          </p>
         </div>
       </section>
 

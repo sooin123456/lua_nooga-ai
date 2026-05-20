@@ -4,11 +4,21 @@ import { describe, expect, it, vi } from "vitest";
 import { InputHome } from "./InputHome";
 
 describe("InputHome", () => {
+  it("shows the 누가 잘못 AI brand and pricing split", () => {
+    render(<InputHome onSelect={vi.fn()} />);
+
+    expect(screen.getByText("누가 잘못 AI")).toBeInTheDocument();
+    expect(screen.getByText("미스 노짱이 판독해드립니다")).toBeInTheDocument();
+    expect(
+      screen.getByText("990원 내면 판례까지 뒤져드립니다"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("싸움 판독 자체는 무료예요")).toBeInTheDocument();
+  });
+
   it("renders the approved input method buttons", () => {
     render(<InputHome onSelect={vi.fn()} />);
 
     expect(screen.getAllByRole("button")).toHaveLength(4);
-    expect(screen.getByText("미스터 노우")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
     ).toBeInTheDocument();
