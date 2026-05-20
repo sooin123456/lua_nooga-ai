@@ -1,3 +1,4 @@
+import type { ChangeEvent } from "react";
 import { useRef, useState } from "react";
 import "./App.css";
 import { analyzeWithRules } from "./features/analyzer/ruleBasedAnalyzer";
@@ -5,6 +6,10 @@ import type { JudgmentResult } from "./features/analyzer/types";
 import { InputHome } from "./features/input/InputHome";
 import { inputMethods, type InputMethod } from "./features/input/inputMethods";
 import { TextReview } from "./features/input/TextReview";
+import {
+  extractTextFromImage,
+  ocrFailureMessage,
+} from "./features/ocr/ocrAdapter";
 import { ResultScreen } from "./features/result/ResultScreen";
 
 type AppState =
@@ -12,8 +17,11 @@ type AppState =
   | {
       screen: "review";
       reviewId: number;
+      inputMethod: InputMethod;
       initialText: string;
       helperText?: string;
+      isOcrPending?: boolean;
+      ocrFileName?: string;
     }
   | { screen: "result"; result: JudgmentResult };
 
@@ -24,11 +32,16 @@ B: 다시 차분히 이야기하자.`;
 
 const reviewHelpers: Partial<Record<InputMethod, string>> = {
   screenshot:
-    "OCR은 다음 단계에서 붙을 예정이에요. 지금은 캡처 속 대화를 직접 붙여넣어 주세요.",
-  record: "음성 변환 전에도 판정할 텍스트 확인이 필요해요. 지금은 대화를 직접 입력해 주세요.",
+    "캡처 이미지를 선택하면 글자를 읽어볼게요. 필요하면 직접 고칠 수 있어요.",
+  record:
+    "음성 변환 전에도 판정할 텍스트 확인이 필요해요. 지금은 대화를 직접 입력해 주세요.",
   "audio-file":
     "녹음 파일 변환 전에도 텍스트 확인이 필요해요. 지금은 대화를 직접 입력해 주세요.",
 };
+
+const ocrSuccessMessage =
+  "캡처에서 글자를 읽었어요. 내용을 확인하고 고쳐 주세요.";
+const ocrPendingMessage = "캡처에서 글자를 읽고 있어요.";
 
 function App() {
   const [state, setState] = useState<AppState>({ screen: "home" });
@@ -47,12 +60,113 @@ function App() {
     setState({
       screen: "review",
       reviewId,
+      inputMethod: method,
       initialText: method === "text" ? starterSampleText : "",
       helperText:
         method === "text"
           ? selectedMethod?.description
-          : reviewHelpers[method] ?? selectedMethod?.description,
+          : (reviewHelpers[method] ?? selectedMethod?.description),
     });
+  };
+
+  const handleScreenshotFileChange = async (
+    event: ChangeEvent<HTMLInputElement>,
+    reviewId: number,
+  ) => {
+    const file = event.currentTarget.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setState((currentState) => {
+      if (
+        currentState.screen !== "review" ||
+        currentState.reviewId !== reviewId
+      ) {
+        return currentState;
+      }
+
+      return {
+        ...currentState,
+        helperText: ocrPendingMessage,
+        isOcrPending: true,
+        ocrFileName: file.name,
+      };
+    });
+
+    try {
+      const extractedText = await extractTextFromImage(file);
+
+      if (reviewId !== activeReviewIdRef.current) {
+        return;
+      }
+
+      setState((currentState) => {
+        if (
+          currentState.screen !== "review" ||
+          currentState.reviewId !== reviewId
+        ) {
+          return currentState;
+        }
+
+        return {
+          ...currentState,
+          initialText: extractedText,
+          helperText: ocrSuccessMessage,
+          isOcrPending: false,
+        };
+      });
+    } catch {
+      if (reviewId !== activeReviewIdRef.current) {
+        return;
+      }
+
+      setState((currentState) => {
+        if (
+          currentState.screen !== "review" ||
+          currentState.reviewId !== reviewId
+        ) {
+          return currentState;
+        }
+
+        return {
+          ...currentState,
+          helperText: ocrFailureMessage,
+          isOcrPending: false,
+        };
+      });
+    }
+  };
+
+  const renderScreenshotPicker = (
+    reviewId: number,
+    isOcrPending?: boolean,
+    ocrFileName?: string,
+  ) => {
+    const inputId = `screenshot-file-${reviewId}`;
+
+    return (
+      <div className="media-control">
+        <label className="media-picker" htmlFor={inputId}>
+          캡처 이미지 선택
+        </label>
+        <input
+          id={inputId}
+          className="media-picker__input"
+          type="file"
+          accept="image/*"
+          aria-label="캡처 이미지 선택"
+          disabled={isOcrPending}
+          onChange={(event) => handleScreenshotFileChange(event, reviewId)}
+        />
+        {ocrFileName ? (
+          <p className="media-control__status">
+            {isOcrPending ? "읽는 중" : "선택됨"}: {ocrFileName}
+          </p>
+        ) : null}
+      </div>
+    );
   };
 
   const handleAnalyze = async (text: string, reviewId: number) => {
@@ -70,6 +184,15 @@ function App() {
       <TextReview
         initialText={state.initialText}
         helperText={state.helperText}
+        mediaControl={
+          state.inputMethod === "screenshot"
+            ? renderScreenshotPicker(
+                state.reviewId,
+                state.isOcrPending,
+                state.ocrFileName,
+              )
+            : undefined
+        }
         onAnalyze={(text) => handleAnalyze(text, state.reviewId)}
         onBack={goHome}
       />

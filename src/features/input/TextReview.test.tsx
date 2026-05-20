@@ -30,6 +30,27 @@ function renderTextReview(ui: ReactNode) {
 }
 
 describe("TextReview", () => {
+  it("renders an optional media control before the textarea", () => {
+    renderTextReview(
+      <TextReview
+        initialText="A: 확인할 내용"
+        mediaControl={<button type="button">이미지 선택</button>}
+        onAnalyze={vi.fn()}
+        onBack={vi.fn()}
+      />,
+    );
+
+    const reviewSection = screen.getByRole("region", {
+      name: "대화 내용 확인",
+    });
+    const controls = Array.from(reviewSection.children);
+
+    expect(screen.getByRole("button", { name: "이미지 선택" })).toBeVisible();
+    expect(
+      controls.indexOf(screen.getByRole("button", { name: "이미지 선택" })),
+    ).toBeLessThan(controls.indexOf(screen.getByLabelText("분석할 대화 내용")));
+  });
+
   it("requires text before analysis", async () => {
     const user = userEvent.setup();
     const onAnalyze = vi.fn();
@@ -196,6 +217,8 @@ describe("TextReview", () => {
       />,
     );
 
-    expect(screen.getByLabelText("분석할 대화 내용")).toHaveValue("OCR 대기 중");
+    expect(screen.getByLabelText("분석할 대화 내용")).toHaveValue(
+      "OCR 대기 중",
+    );
   });
 });

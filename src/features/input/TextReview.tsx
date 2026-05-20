@@ -1,9 +1,11 @@
 import { Button, Top } from "@toss/tds-mobile";
+import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 type TextReviewProps = {
   initialText: string;
   helperText?: string;
+  mediaControl?: ReactNode;
   onAnalyze(text: string): void | Promise<void>;
   onBack(): void;
 };
@@ -14,6 +16,7 @@ const submitFailureMessage =
 export function TextReview({
   initialText,
   helperText,
+  mediaControl,
   onAnalyze,
   onBack,
 }: TextReviewProps) {
@@ -80,6 +83,7 @@ export function TextReview({
 
       <section className="text-review" aria-label="대화 내용 확인">
         <label htmlFor="analysis-text">분석할 대화 내용</label>
+        {mediaControl}
         <textarea
           id="analysis-text"
           aria-label="분석할 대화 내용"
