@@ -9,10 +9,10 @@ describe("InputHome", () => {
 
     expect(screen.getByText("누가 잘못 AI")).toBeInTheDocument();
     expect(screen.getByText("루아 AI가 판독해드립니다")).toBeInTheDocument();
+    expect(screen.getByText("사건을 접수해 주세요")).toBeInTheDocument();
     expect(
-      screen.getByText("990원 내면 판례까지 뒤져드립니다"),
+      screen.getByText(/대화, 캡처, 녹음을 증거로 제출하면/),
     ).toBeInTheDocument();
-    expect(screen.getByText("싸움 판독 자체는 무료예요")).toBeInTheDocument();
   });
 
   it("renders the approved input method buttons", () => {

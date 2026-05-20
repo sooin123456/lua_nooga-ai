@@ -1,6 +1,7 @@
 import { Top } from "@toss/tds-mobile";
-import { LuaAiMascot } from "../../shared/ui/LuaAiMascot";
+import { EvidenceMethodCard } from "./EvidenceMethodCard";
 import { inputMethods, type InputMethod } from "./inputMethods";
+import { MotionHomeHero } from "./MotionHomeHero";
 
 type InputHomeProps = {
   onSelect(method: InputMethod): void;
@@ -18,33 +19,18 @@ export function InputHome({ onSelect }: InputHomeProps) {
         }
       />
 
-      <section className="hero-panel" aria-label="누가 잘못 AI 소개">
-        <LuaAiMascot />
-        <div>
-          <p className="eyebrow">싸움 판독 자체는 무료예요</p>
-          <h1>990원 내면 판례까지 뒤져드립니다</h1>
-          <p className="hero-panel__note">
-            무료로는 가볍게, 유료로는 더 그럴듯하게.
-          </p>
-        </div>
-      </section>
+      <MotionHomeHero />
 
       <section className="method-grid" aria-label="입력 방식 선택">
-        {inputMethods.map(({ id, title, description, Icon }) => (
-          <button
-            className="method-card"
+        {inputMethods.map(({ id, title, description, Icon }, index) => (
+          <EvidenceMethodCard
+            Icon={Icon}
+            description={description}
             key={id}
-            type="button"
+            index={index}
+            title={title}
             onClick={() => onSelect(id)}
-          >
-            <span className="method-card__icon" aria-hidden="true">
-              <Icon size={22} strokeWidth={2.2} />
-            </span>
-            <span className="method-card__copy">
-              <strong>{title}</strong>
-              <span>{description}</span>
-            </span>
-          </button>
+          />
         ))}
       </section>
     </main>
