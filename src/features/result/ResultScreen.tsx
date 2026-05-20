@@ -7,6 +7,9 @@ import {
   createRewardRecommendation,
   type RewardRecommendation,
 } from "../rewards/rewardAdapter";
+import { AnimatedPercentBar } from "./AnimatedPercentBar";
+import { ResultReasonCard } from "./ResultReasonCard";
+import { VerdictSummaryCard } from "./VerdictSummaryCard";
 
 type ResultScreenProps = {
   result: JudgmentResult;
@@ -44,25 +47,21 @@ export function ResultScreen({ result, onRestart }: ResultScreenProps) {
       >
         {isSafetyResult ? <p className="result-safety-badge">{safetyLabel}</p> : null}
 
-        <div className="result-verdict">
-          <p>오늘의 판결</p>
-          <strong>{result.verdict}</strong>
-        </div>
+        <VerdictSummaryCard
+          isSafetyResult={isSafetyResult}
+          verdict={result.verdict}
+        />
 
-        <div className="result-percentages" aria-label="A와 B 비율">
-          <div>
-            <strong>A {result.partyAPercent}%</strong>
-          </div>
-          <div>
-            <strong>B {result.partyBPercent}%</strong>
-          </div>
-        </div>
+        <AnimatedPercentBar
+          partyAPercent={result.partyAPercent}
+          partyBPercent={result.partyBPercent}
+        />
 
         <section className="result-section" aria-labelledby="result-reasons-title">
           <h2 id="result-reasons-title">근거 3개</h2>
           <ol className="result-reasons">
-            {result.reasons.slice(0, 3).map((reason) => (
-              <li key={reason}>{reason}</li>
+            {result.reasons.slice(0, 3).map((reason, index) => (
+              <ResultReasonCard index={index} key={reason} reason={reason} />
             ))}
           </ol>
         </section>

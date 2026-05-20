@@ -236,12 +236,14 @@
   line-height: 1.2;
 }
 
-.result-verdict {
+.result-verdict,
+.verdict-summary-card {
   display: grid;
   gap: 6px;
 }
 
 .result-verdict p,
+.verdict-summary-card p,
 .result-section h2,
 .result-advice,
 .result-disclaimer {
@@ -249,6 +251,7 @@
 }
 
 .result-verdict p,
+.verdict-summary-card p,
 .result-section h2 {
   color: #6b7684;
   font-size: 14px;
@@ -256,11 +259,44 @@
   line-height: 1.35;
 }
 
-.result-verdict strong {
+.result-verdict strong,
+.verdict-summary-card strong {
   overflow-wrap: anywhere;
   color: #191f28;
   font-size: 24px;
   line-height: 1.25;
+}
+
+.verdict-summary-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 116px;
+  padding: 18px;
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at right top, rgba(242, 5, 26, 0.18), transparent 42%),
+    #fff5f6;
+  animation: result-card-in 320ms ease both;
+}
+
+.verdict-gavel {
+  position: absolute;
+  right: 18px;
+  bottom: 16px;
+  width: 58px;
+  height: 42px;
+}
+
+.verdict-gavel span {
+  position: absolute;
+  right: 0;
+  bottom: 8px;
+  width: 48px;
+  height: 14px;
+  border-radius: 999px;
+  background: #8a4b2a;
+  transform-origin: right center;
+  animation: gavel-once 520ms ease 260ms both;
 }
 
 .result-percentages {
@@ -283,6 +319,51 @@
   line-height: 1.2;
 }
 
+.animated-percent-bar {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 8px;
+  background: #191f28;
+  color: #ffffff;
+  animation: result-card-in 360ms ease 80ms both;
+}
+
+.animated-percent-bar__labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.animated-percent-bar__labels strong {
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.animated-percent-bar__track {
+  display: grid;
+  grid-template-columns: var(--party-a) var(--party-b);
+  height: 18px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.animated-percent-bar__fill {
+  min-width: 0;
+  animation: percent-fill 420ms ease both;
+}
+
+.animated-percent-bar__fill--a {
+  background: #ffffff;
+  transform-origin: left;
+}
+
+.animated-percent-bar__fill--b {
+  background: #ff4050;
+  transform-origin: right;
+}
+
 .result-section {
   display: grid;
   gap: 10px;
@@ -292,13 +373,38 @@
   display: grid;
   gap: 8px;
   margin: 0;
-  padding-left: 22px;
+  padding: 0;
+  list-style: none;
 }
 
 .result-reasons li,
 .result-advice,
 .result-disclaimer {
   overflow-wrap: anywhere;
+  color: #333d4b;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.result-reason-card {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid #e5e8eb;
+  border-radius: 8px;
+  background: #ffffff;
+  animation: result-card-in 320ms ease both;
+  animation-delay: calc(140ms + var(--stagger-index) * 80ms);
+}
+
+.result-reason-card strong {
+  color: #f2051a;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.result-reason-card span {
   color: #333d4b;
   font-size: 15px;
   line-height: 1.45;
@@ -692,6 +798,38 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes result-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes percent-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes gavel-once {
+  0% {
+    transform: rotate(-18deg);
+  }
+  58% {
+    transform: rotate(-48deg);
+  }
+  100% {
+    transform: rotate(-22deg);
   }
 }
 

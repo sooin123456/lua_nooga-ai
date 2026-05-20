@@ -48,10 +48,16 @@ describe("ResultScreen", () => {
     expect(screen.getByText(result.verdict)).toBeInTheDocument();
     expect(screen.getByText("A 62%")).toBeInTheDocument();
     expect(screen.getByText("B 38%")).toBeInTheDocument();
+    expect(screen.getByLabelText("A 62%, B 38%")).toBeInTheDocument();
+    expect(screen.getByText("증거 1")).toBeInTheDocument();
+    expect(screen.getByText("증거 2")).toBeInTheDocument();
+    expect(screen.getByText("증거 3")).toBeInTheDocument();
 
     const reasons = screen.getAllByRole("listitem");
     expect(reasons).toHaveLength(3);
-    expect(reasons.map((reason) => reason.textContent)).toEqual(result.reasons);
+    result.reasons.forEach((reason) => {
+      expect(screen.getByText(reason)).toBeInTheDocument();
+    });
 
     expect(screen.getByText(result.advice)).toBeInTheDocument();
     expect(
