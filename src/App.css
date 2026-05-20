@@ -11,3 +11,151 @@
     margin: 0 auto;
   }
 }
+
+.screen {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 20px 18px 32px;
+  background: #f7f8fa;
+  color: #191f28;
+}
+
+.screen--home {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.hero-panel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid #e5e8eb;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.hero-panel h1 {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 22px;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #4e5968;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.mascot {
+  position: relative;
+  width: 74px;
+  height: 86px;
+  flex: none;
+}
+
+.mascot__face {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 74px;
+  height: 74px;
+  border: 3px solid #191f28;
+  border-radius: 50%;
+  background: #ffdf6e;
+  box-shadow: 0 8px 0 #191f28;
+  box-sizing: border-box;
+}
+
+.mascot__eye {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #191f28;
+}
+
+.mascot__mouth {
+  position: absolute;
+  bottom: 30px;
+  left: 31px;
+  width: 12px;
+  height: 6px;
+  border-bottom: 3px solid #191f28;
+  border-radius: 0 0 12px 12px;
+}
+
+.mascot__badge {
+  position: absolute;
+  right: -8px;
+  bottom: 3px;
+  padding: 3px 6px;
+  border: 2px solid #191f28;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.method-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.method-card {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  min-height: 82px;
+  padding: 14px;
+  border: 1px solid #e5e8eb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #191f28;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.method-card:focus-visible {
+  outline: 3px solid #90c2ff;
+  outline-offset: 2px;
+}
+
+.method-card__icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: #e8f3ff;
+  color: #1b64da;
+}
+
+.method-card__copy {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.method-card__copy strong {
+  overflow-wrap: anywhere;
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.method-card__copy span {
+  overflow-wrap: anywhere;
+  color: #6b7684;
+  font-size: 14px;
+  line-height: 1.35;
+}
