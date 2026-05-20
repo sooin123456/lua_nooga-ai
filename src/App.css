@@ -94,6 +94,34 @@
   background: #e8f3ff;
 }
 
+.media-button {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 44px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border: 1px solid #3182f6;
+  border-radius: 8px;
+  background: #3182f6;
+  color: #ffffff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.media-button:active {
+  background: #1b64da;
+}
+
+.media-button:focus-visible {
+  outline: 3px solid #90c2ff;
+  outline-offset: 2px;
+}
+
 .media-picker__input {
   max-width: 100%;
   color: #4e5968;

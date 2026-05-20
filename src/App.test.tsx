@@ -251,4 +251,62 @@ describe("App text review flow", () => {
 
     expect(screen.queryByText("임시 판정 결과")).not.toBeInTheDocument();
   });
+
+  it("shows a manual transcription message when starting the recording flow", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: /현장 녹음 시작/ }));
+    await user.click(
+      screen.getByRole("button", { name: "녹음 흐름 시작하기" }),
+    );
+
+    expect(screen.getByText(/녹음 흐름을 시작했어요/)).toHaveTextContent(
+      "직접",
+    );
+
+    await user.type(
+      screen.getByLabelText("분석할 대화 내용"),
+      "A: 녹음 후 직접 입력",
+    );
+    expect(screen.getByLabelText("분석할 대화 내용")).toHaveValue(
+      "A: 녹음 후 직접 입력",
+    );
+  });
+
+  it("shows a manual transcription message with the selected audio file name", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /녹음 파일 불러오기/ }),
+    );
+
+    const file = new File(["audio bytes"], "fight-recording.m4a", {
+      type: "audio/mp4",
+    });
+    await user.upload(screen.getByLabelText("녹음 파일 선택"), file);
+
+    expect(
+      screen.getByText(/fight-recording\.m4a 내용을 들은 뒤/),
+    ).toHaveTextContent("직접");
+
+    await user.type(
+      screen.getByLabelText("분석할 대화 내용"),
+      "A: 파일 듣고 직접 입력",
+    );
+    expect(screen.getByLabelText("분석할 대화 내용")).toHaveValue(
+      "A: 파일 듣고 직접 입력",
+    );
+  });
 });

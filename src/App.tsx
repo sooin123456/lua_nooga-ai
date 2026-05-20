@@ -3,6 +3,10 @@ import { useRef, useState } from "react";
 import "./App.css";
 import { analyzeWithRules } from "./features/analyzer/ruleBasedAnalyzer";
 import type { JudgmentResult } from "./features/analyzer/types";
+import {
+  manualTranscriptionAdapter,
+  type TranscriptionSource,
+} from "./features/audio/audioAdapter";
 import { InputHome } from "./features/input/InputHome";
 import { inputMethods, type InputMethod } from "./features/input/inputMethods";
 import { TextReview } from "./features/input/TextReview";
@@ -22,6 +26,7 @@ type AppState =
       helperText?: string;
       isOcrPending?: boolean;
       ocrFileName?: string;
+      audioFileName?: string;
       ocrSyncKey?: number;
       ocrDeliveredSyncKey?: number;
     }
@@ -149,6 +154,32 @@ function App() {
     }
   };
 
+  const updateAudioHelper = async (
+    reviewId: number,
+    input: TranscriptionSource,
+  ) => {
+    const helperText = await manualTranscriptionAdapter.transcribe(input);
+
+    if (reviewId !== activeReviewIdRef.current) {
+      return;
+    }
+
+    setState((currentState) => {
+      if (
+        currentState.screen !== "review" ||
+        currentState.reviewId !== reviewId
+      ) {
+        return currentState;
+      }
+
+      return {
+        ...currentState,
+        helperText,
+        audioFileName: input.source === "file" ? input.file.name : undefined,
+      };
+    });
+  };
+
   const renderScreenshotPicker = (
     reviewId: number,
     isOcrPending?: boolean,
@@ -179,6 +210,51 @@ function App() {
     );
   };
 
+  const renderRecordingControl = (reviewId: number) => (
+    <div className="media-control">
+      <button
+        className="media-button"
+        type="button"
+        onClick={() =>
+          void updateAudioHelper(reviewId, { source: "recording" })
+        }
+      >
+        녹음 흐름 시작하기
+      </button>
+    </div>
+  );
+
+  const renderAudioFilePicker = (reviewId: number, audioFileName?: string) => {
+    const inputId = `audio-file-${reviewId}`;
+
+    return (
+      <div className="media-control">
+        <label className="media-picker" htmlFor={inputId}>
+          녹음 파일 선택
+        </label>
+        <input
+          id={inputId}
+          className="media-picker__input"
+          type="file"
+          accept="audio/*"
+          aria-label="녹음 파일 선택"
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+
+            if (!file) {
+              return;
+            }
+
+            void updateAudioHelper(reviewId, { source: "file", file });
+          }}
+        />
+        {audioFileName ? (
+          <p className="media-control__status">선택됨: {audioFileName}</p>
+        ) : null}
+      </div>
+    );
+  };
+
   const handleAnalyze = async (text: string, reviewId: number) => {
     const result = await analyzeWithRules({ text });
 
@@ -189,6 +265,30 @@ function App() {
     setState({ screen: "result", result });
   };
 
+  const renderMediaControl = () => {
+    if (state.screen !== "review") {
+      return undefined;
+    }
+
+    if (state.inputMethod === "screenshot") {
+      return renderScreenshotPicker(
+        state.reviewId,
+        state.isOcrPending,
+        state.ocrFileName,
+      );
+    }
+
+    if (state.inputMethod === "record") {
+      return renderRecordingControl(state.reviewId);
+    }
+
+    if (state.inputMethod === "audio-file") {
+      return renderAudioFilePicker(state.reviewId, state.audioFileName);
+    }
+
+    return undefined;
+  };
+
   if (state.screen === "review") {
     return (
       <TextReview
@@ -196,15 +296,7 @@ function App() {
         initialTextSyncKey={state.ocrDeliveredSyncKey}
         draftSyncKey={state.ocrSyncKey}
         helperText={state.helperText}
-        mediaControl={
-          state.inputMethod === "screenshot"
-            ? renderScreenshotPicker(
-                state.reviewId,
-                state.isOcrPending,
-                state.ocrFileName,
-              )
-            : undefined
-        }
+        mediaControl={renderMediaControl()}
         onAnalyze={(text) => handleAnalyze(text, state.reviewId)}
         onBack={goHome}
       />
