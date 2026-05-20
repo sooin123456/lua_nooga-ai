@@ -6,6 +6,10 @@ describe("detectSafetyLevel", () => {
     expect(detectSafetyLevel("때리겠다 죽여버리겠다 집 앞에서 기다린다")).toBe("urgent");
   });
 
+  it("marks compact stalking location language as urgent", () => {
+    expect(detectSafetyLevel("집앞에서 기다릴게")).toBe("urgent");
+  });
+
   it("marks coercive control language as caution", () => {
     expect(detectSafetyLevel("휴대폰 검사하고 누구 만나는지 매번 허락받으라고 했어")).toBe("caution");
   });

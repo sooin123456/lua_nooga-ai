@@ -1,8 +1,8 @@
 import { detectSafetyLevel } from "../safety/safety";
 import type { AnalyzeInput, Analyzer, JudgmentResult } from "./types";
 
-const partyAPattern = /(^|\n)\s*(A|나|남친|여친|상대1)\s*[:：]/i;
-const partyBPattern = /(^|\n)\s*(B|상대|남친|여친|상대2)\s*[:：]/i;
+const partyAPattern = /(^|\n)\s*(A|나|남친|상대1)\s*[:：]/i;
+const partyBPattern = /(^|\n)\s*(B|상대|여친|상대2)\s*[:：]/i;
 
 const blamePatterns = [/항상/g, /절대/g, /네 탓/g, /너 때문/g, /이기적/g, /됐고/g, /내 말만/g];
 const apologyPatterns = [/미안/g, /사과/g, /내가.*잘못/g, /말이.*셌/g, /다시.*이야기/g];
@@ -20,9 +20,9 @@ function splitPartyText(text: string) {
   const sharedLines: string[] = [];
 
   for (const line of lines) {
-    if (/^\s*(A|나|상대1)\s*[:：]/i.test(line)) {
+    if (/^\s*(A|나|남친|상대1)\s*[:：]/i.test(line)) {
       aLines.push(line);
-    } else if (/^\s*(B|상대|상대2)\s*[:：]/i.test(line)) {
+    } else if (/^\s*(B|상대|여친|상대2)\s*[:：]/i.test(line)) {
       bLines.push(line);
     } else {
       sharedLines.push(line);

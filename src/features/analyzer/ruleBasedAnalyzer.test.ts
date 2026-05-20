@@ -33,4 +33,12 @@ describe("analyzeWithRules", () => {
     expect(result.safetyLevel).toBe("urgent");
     expect(result.verdict).toContain("안전");
   });
+
+  it("scores blameful 남친 and 여친 party markers consistently", async () => {
+    const result = await analyzeWithRules({
+      text: "남친: 다 네 탓이야. 너는 항상 이기적이야. 됐고 내 말만 들어.\n여친: 내가 늦게 말한 건 미안해. 다시 이야기하자.",
+    });
+
+    expect(result.partyAPercent).toBeGreaterThan(result.partyBPercent);
+  });
 });
