@@ -17,6 +17,10 @@ export function ResultScreen({ result, onRestart }: ResultScreenProps) {
     useState<RewardRecommendation | null>(null);
   const isSafetyResult = result.safetyLevel !== "normal";
   const safetyLabel = result.safetyLevel === "urgent" ? "긴급 안전 확인" : "주의 필요";
+  const handleRewardSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setRewardRecommendation(createRewardRecommendation(rewardWish));
+  };
 
   return (
     <main className="screen screen--result">
@@ -69,28 +73,28 @@ export function ResultScreen({ result, onRestart }: ResultScreenProps) {
             <label className="reward-box__label" htmlFor="reward-wish">
               이긴 사람이 받고 싶은 것
             </label>
-            <div className="reward-box__input-row">
+            <form className="reward-box__input-row" onSubmit={handleRewardSubmit}>
               <input
                 id="reward-wish"
                 value={rewardWish}
                 placeholder="예: 달달한 거, 커피, 귀여운 거"
-                onChange={(event) => setRewardWish(event.currentTarget.value)}
+                onChange={(event) => {
+                  setRewardWish(event.currentTarget.value);
+                  setRewardRecommendation(null);
+                }}
               />
-              <button
-                type="button"
-                onClick={() =>
-                  setRewardRecommendation(createRewardRecommendation(rewardWish))
-                }
-              >
+              <button type="submit">
                 보상 추천 받기
               </button>
-            </div>
+            </form>
             {rewardRecommendation ? (
-              <div className="reward-result">
+              <div className="reward-result" role="status">
                 <strong>{rewardRecommendation.category}</strong>
                 <p>{rewardRecommendation.searchTerms.join(" · ")}</p>
                 <span>{rewardRecommendation.reason}</span>
-                <button type="button">{rewardRecommendation.ctaLabel}</button>
+                <button type="button" disabled>
+                  토스 쇼핑 연결 준비 중
+                </button>
               </div>
             ) : null}
           </section>

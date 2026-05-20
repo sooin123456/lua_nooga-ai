@@ -362,6 +362,12 @@
   outline-offset: 2px;
 }
 
+.reward-box button:disabled,
+.premium-panel button:disabled {
+  background: #8b95a1;
+  cursor: not-allowed;
+}
+
 .reward-result {
   display: grid;
   gap: 6px;

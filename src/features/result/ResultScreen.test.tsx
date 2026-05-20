@@ -80,8 +80,22 @@ describe("ResultScreen", () => {
     expect(screen.getByText("디저트/간식")).toBeInTheDocument();
     expect(screen.getByText("초콜릿 · 마카롱 · 케이크")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "토스 쇼핑에서 비슷한 보상 찾기" }),
-    ).toBeInTheDocument();
+      screen.getByRole("button", { name: "토스 쇼핑 연결 준비 중" }),
+    ).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent("디저트/간식");
+  });
+
+  it("supports Enter submission and clears stale reward results on edit", async () => {
+    const user = userEvent.setup();
+    renderResultScreen(<ResultScreen result={result} onRestart={vi.fn()} />);
+
+    const input = screen.getByLabelText("이긴 사람이 받고 싶은 것");
+
+    await user.type(input, "커피{Enter}");
+    expect(screen.getByRole("status")).toHaveTextContent("커피/음료");
+
+    await user.type(input, "랑 케이크");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("does not show shopping reward flow for safety results", () => {
