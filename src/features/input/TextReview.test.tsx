@@ -171,4 +171,31 @@ describe("TextReview", () => {
       "사용자가 고친 내용",
     );
   });
+
+  it("preserves a user-edited draft even when it matches the previous initial text", async () => {
+    const user = userEvent.setup();
+    const { rerender } = renderTextReview(
+      <TextReview
+        initialText="OCR 대기 중"
+        onAnalyze={vi.fn()}
+        onBack={vi.fn()}
+      />,
+    );
+
+    const textarea = screen.getByLabelText("분석할 대화 내용");
+    await user.clear(textarea);
+    await user.type(textarea, "임시 수정");
+    await user.clear(textarea);
+    await user.type(textarea, "OCR 대기 중");
+
+    rerender(
+      <TextReview
+        initialText="OCR로 읽은 새 내용"
+        onAnalyze={vi.fn()}
+        onBack={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("분석할 대화 내용")).toHaveValue("OCR 대기 중");
+  });
 });

@@ -20,8 +20,8 @@ export function TextReview({
   const [text, setText] = useState(initialText);
   const [error, setError] = useState("");
   const [isPending, setIsPending] = useState(false);
+  const [hasUserEditedDraft, setHasUserEditedDraft] = useState(false);
   const isMountedRef = useRef(true);
-  const previousInitialTextRef = useRef(initialText);
 
   useEffect(() => {
     return () => {
@@ -30,17 +30,10 @@ export function TextReview({
   }, []);
 
   useEffect(() => {
-    const previousInitialText = previousInitialTextRef.current;
-
-    setText((currentText) => {
-      if (currentText === previousInitialText) {
-        return initialText;
-      }
-
-      return currentText;
-    });
-    previousInitialTextRef.current = initialText;
-  }, [initialText]);
+    if (!hasUserEditedDraft) {
+      setText(initialText);
+    }
+  }, [hasUserEditedDraft, initialText]);
 
   const handleSubmit = async () => {
     if (isPending) {
@@ -94,6 +87,7 @@ export function TextReview({
           aria-invalid={error ? "true" : undefined}
           value={text}
           onChange={(event) => {
+            setHasUserEditedDraft(true);
             setText(event.target.value);
             if (error) {
               setError("");
