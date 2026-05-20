@@ -1,7 +1,6 @@
 import { Top } from "@toss/tds-mobile";
 import { EvidenceMethodCard } from "./EvidenceMethodCard";
 import { inputMethods, type InputMethod } from "./inputMethods";
-import { MotionHomeHero } from "./MotionHomeHero";
 
 type InputHomeProps = {
   onSelect(method: InputMethod): void;
@@ -13,8 +12,6 @@ export function InputHome({ onSelect }: InputHomeProps) {
       <Top
         title={<Top.TitleParagraph size={28}>누가 잘못 AI</Top.TitleParagraph>}
       />
-
-      <MotionHomeHero />
 
       <section className="home-dashboard" aria-label="입력 방식 선택">
         <article className="home-profile-card">
@@ -34,7 +31,7 @@ export function InputHome({ onSelect }: InputHomeProps) {
         <article className="home-tip-card">
           <span aria-hidden="true">⚖</span>
           <div>
-            <strong>내 마음대로 바꾸는 AI 판정소</strong>
+            <strong>오늘의 싸움 판독소</strong>
             <p>대화, 캡처, 녹음 중 편한 증거부터 제출해 주세요.</p>
           </div>
         </article>
@@ -71,6 +68,30 @@ export function InputHome({ onSelect }: InputHomeProps) {
             />
           ))}
         </div>
+
+        <article className="home-status-card">
+          <div>
+            <strong>최근 판정</strong>
+            <p>아직 저장된 판정이 없어요. 첫 사건을 접수해 보세요.</p>
+          </div>
+          <span>0건</span>
+        </article>
+
+        <article className="home-premium-card">
+          <div>
+            <strong>990원 판례 판독</strong>
+            <p>서버 연결 후 유사 판례 근거를 더 자세히 보여줄 예정이에요.</p>
+          </div>
+          <span>준비 중</span>
+        </article>
+
+        <p className="home-privacy-note">
+          현재 무료 판독은 입력 내용을 이 기기 안에서만 가볍게 분석해요.
+        </p>
+
+        <p className="home-legal-note">
+          재미용 판독이며 법률 상담이나 실제 법적 판단이 아니에요.
+        </p>
       </section>
     </main>
   );

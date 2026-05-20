@@ -8,6 +8,7 @@ import {
   type TranscriptionSource,
 } from "./features/audio/audioAdapter";
 import { InputHome } from "./features/input/InputHome";
+import { IntroScreen } from "./features/input/IntroScreen";
 import { inputMethods, type InputMethod } from "./features/input/inputMethods";
 import { TextReview } from "./features/input/TextReview";
 import {
@@ -17,6 +18,7 @@ import {
 import { ResultScreen } from "./features/result/ResultScreen";
 
 type AppState =
+  | { screen: "intro" }
   | { screen: "home" }
   | {
       screen: "review";
@@ -52,7 +54,7 @@ const ocrSuccessMessage =
 const ocrPendingMessage = "캡처에서 글자를 읽고 있어요.";
 
 function App() {
-  const [state, setState] = useState<AppState>({ screen: "home" });
+  const [state, setState] = useState<AppState>({ screen: "intro" });
   const activeReviewIdRef = useRef(0);
   const ocrSyncKeyRef = useRef(0);
   const screenshotPreviewUrlRef = useRef<string | undefined>(undefined);
@@ -81,6 +83,10 @@ function App() {
   const goHome = () => {
     activeReviewIdRef.current += 1;
     revokeScreenshotPreviewUrl();
+    setState({ screen: "home" });
+  };
+
+  const startJudgment = () => {
     setState({ screen: "home" });
   };
 
@@ -367,6 +373,10 @@ function App() {
 
   if (state.screen === "result") {
     return <ResultScreen result={state.result} onRestart={goHome} />;
+  }
+
+  if (state.screen === "intro") {
+    return <IntroScreen onStart={startJudgment} />;
   }
 
   return <InputHome onSelect={handleSelect} />;

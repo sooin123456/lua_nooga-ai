@@ -34,18 +34,50 @@ beforeAll(() => {
   });
 });
 
+async function renderAppHome(user: ReturnType<typeof userEvent.setup>) {
+  render(
+    <ThemeProvider>
+      <App />
+    </ThemeProvider>,
+  );
+
+  await user.click(screen.getByRole("button", { name: "판정 시작하기" }));
+}
+
 describe("App text review flow", () => {
-  it("runs OCR for a pasted screenshot image and fills review text", async () => {
+  it("starts on the intro screen before showing the main dashboard", async () => {
     const user = userEvent.setup();
-    vi.mocked(extractTextFromImage).mockResolvedValue(
-      "A: 붙여넣은 캡처\nB: 확인했어",
-    );
 
     render(
       <ThemeProvider>
         <App />
       </ThemeProvider>,
     );
+
+    expect(
+      screen.getByRole("button", { name: "판정 시작하기" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /카톡 싸움 붙여넣기/ }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "판정 시작하기" }));
+
+    expect(
+      screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("최근 판정")).toBeInTheDocument();
+    expect(screen.getByText("990원 판례 판독")).toBeInTheDocument();
+    expect(screen.getByText(/현재 무료 판독은 입력 내용을/)).toBeInTheDocument();
+  });
+
+  it("runs OCR for a pasted screenshot image and fills review text", async () => {
+    const user = userEvent.setup();
+    vi.mocked(extractTextFromImage).mockResolvedValue(
+      "A: 붙여넣은 캡처\nB: 확인했어",
+    );
+
+    await renderAppHome(user);
 
     await user.click(
       screen.getByRole("button", { name: /증거 캡처 제출하기/ }),
@@ -85,11 +117,7 @@ describe("App text review flow", () => {
     const user = userEvent.setup();
     vi.mocked(extractTextFromImage).mockResolvedValue("A: 사과해\nB: 미안해");
 
-    render(
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>,
-    );
+    await renderAppHome(user);
 
     await user.click(
       screen.getByRole("button", { name: /증거 캡처 제출하기/ }),
@@ -118,11 +146,7 @@ describe("App text review flow", () => {
       new Error(ocrFailureMessage),
     );
 
-    render(
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>,
-    );
+    await renderAppHome(user);
 
     await user.click(
       screen.getByRole("button", { name: /증거 캡처 제출하기/ }),
@@ -155,11 +179,7 @@ describe("App text review flow", () => {
       .spyOn(URL, "revokeObjectURL")
       .mockImplementation(() => undefined);
 
-    render(
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>,
-    );
+    await renderAppHome(user);
 
     await user.click(
       screen.getByRole("button", { name: /증거 캡처 제출하기/ }),
@@ -208,11 +228,7 @@ describe("App text review flow", () => {
       "A: 새 캡처 내용\nB: 확인했어",
     );
 
-    render(
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>,
-    );
+    await renderAppHome(user);
 
     await user.click(
       screen.getByRole("button", { name: /증거 캡처 제출하기/ }),
@@ -243,11 +259,7 @@ describe("App text review flow", () => {
       }),
     );
 
-    render(
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>,
-    );
+    await renderAppHome(user);
 
     await user.click(
       screen.getByRole("button", { name: /증거 캡처 제출하기/ }),
@@ -277,11 +289,7 @@ describe("App text review flow", () => {
     const repeatedOcrText = "A: 같은 OCR 내용\nB: 다시 확인";
     vi.mocked(extractTextFromImage).mockResolvedValue(repeatedOcrText);
 
-    render(
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>,
-    );
+    await renderAppHome(user);
 
     await user.click(
       screen.getByRole("button", { name: /증거 캡처 제출하기/ }),
@@ -329,11 +337,7 @@ describe("App text review flow", () => {
       }),
     );
 
-    render(
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>,
-    );
+    await renderAppHome(user);
 
     await user.click(
       screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
@@ -370,15 +374,11 @@ describe("App text review flow", () => {
       safetyLevel: "normal",
     });
 
-    render(
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>,
-    );
+    await renderAppHome(user);
 
     expect(screen.getByText("누가 잘못 AI")).toBeInTheDocument();
-    expect(screen.getByText("루아 AI가 판독해드립니다")).toBeInTheDocument();
-    expect(screen.getByText("사건을 접수해 주세요")).toBeInTheDocument();
+    expect(screen.getByText("최근 판정")).toBeInTheDocument();
+    expect(screen.getByText("990원 판례 판독")).toBeInTheDocument();
 
     await user.click(
       screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
@@ -414,11 +414,7 @@ describe("App text review flow", () => {
   it("shows a manual transcription message when starting the recording flow", async () => {
     const user = userEvent.setup();
 
-    render(
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>,
-    );
+    await renderAppHome(user);
 
     await user.click(screen.getByRole("button", { name: /현장 녹음 시작/ }));
     await user.click(
@@ -441,11 +437,7 @@ describe("App text review flow", () => {
   it("shows a manual transcription message with the selected audio file name", async () => {
     const user = userEvent.setup();
 
-    render(
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>,
-    );
+    await renderAppHome(user);
 
     await user.click(
       screen.getByRole("button", { name: /녹음 파일 불러오기/ }),
