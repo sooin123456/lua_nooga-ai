@@ -30,7 +30,13 @@ export async function extractTextFromImage(
   }
 
   try {
-    return await recognizer(file);
+    const text = await recognizer(file);
+
+    if (text.trim().length === 0) {
+      throw new Error(ocrFailureMessage);
+    }
+
+    return text;
   } catch {
     throw new Error(ocrFailureMessage);
   }

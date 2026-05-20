@@ -97,6 +97,76 @@ describe("App text review flow", () => {
     );
   });
 
+  it("replaces a previous manual edit with a newly selected screenshot OCR result", async () => {
+    const user = userEvent.setup();
+    vi.mocked(extractTextFromImage).mockResolvedValue(
+      "A: 새 캡처 내용\nB: 확인했어",
+    );
+
+    render(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /증거 캡처 제출하기/ }),
+    );
+    await user.type(
+      screen.getByLabelText("분석할 대화 내용"),
+      "이전 수동 입력",
+    );
+
+    const file = new File(["new image bytes"], "new-chat.png", {
+      type: "image/png",
+    });
+    await user.upload(screen.getByLabelText("캡처 이미지 선택"), file);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("분석할 대화 내용")).toHaveValue(
+        "A: 새 캡처 내용\nB: 확인했어",
+      );
+    });
+  });
+
+  it("does not replace a manual edit made after screenshot OCR starts", async () => {
+    const user = userEvent.setup();
+    let resolveOcr: (text: string) => void = () => undefined;
+    vi.mocked(extractTextFromImage).mockReturnValue(
+      new Promise((resolve) => {
+        resolveOcr = resolve;
+      }),
+    );
+
+    render(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /증거 캡처 제출하기/ }),
+    );
+
+    const file = new File(["image bytes"], "slow-chat.png", {
+      type: "image/png",
+    });
+    await user.upload(screen.getByLabelText("캡처 이미지 선택"), file);
+    await user.type(
+      screen.getByLabelText("분석할 대화 내용"),
+      "OCR 기다리다 직접 입력",
+    );
+
+    resolveOcr("A: 늦게 도착한 OCR");
+
+    await waitFor(() => {
+      expect(screen.getByText("선택됨: slow-chat.png")).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText("분석할 대화 내용")).toHaveValue(
+      "OCR 기다리다 직접 입력",
+    );
+  });
+
   it("keeps home visible when a stale analysis resolves after going back", async () => {
     const user = userEvent.setup();
     let resolveAnalyze: (

@@ -17,4 +17,15 @@ describe("extractTextFromImage", () => {
     );
     expect(recognizer).toHaveBeenCalledWith(file);
   });
+
+  it("rejects whitespace OCR output with a friendly message", async () => {
+    const file = new File(["image bytes"], "blank-chat.png", {
+      type: "image/png",
+    });
+    const recognizer = vi.fn().mockResolvedValue(" \n\t ");
+
+    await expect(extractTextFromImage(file, recognizer)).rejects.toThrow(
+      ocrFailureMessage,
+    );
+  });
 });

@@ -22,6 +22,7 @@ type AppState =
       helperText?: string;
       isOcrPending?: boolean;
       ocrFileName?: string;
+      ocrSyncKey?: number;
     }
   | { screen: "result"; result: JudgmentResult };
 
@@ -46,6 +47,7 @@ const ocrPendingMessage = "캡처에서 글자를 읽고 있어요.";
 function App() {
   const [state, setState] = useState<AppState>({ screen: "home" });
   const activeReviewIdRef = useRef(0);
+  const ocrSyncKeyRef = useRef(0);
 
   const goHome = () => {
     activeReviewIdRef.current += 1;
@@ -79,6 +81,9 @@ function App() {
       return;
     }
 
+    const ocrSyncKey = ocrSyncKeyRef.current + 1;
+    ocrSyncKeyRef.current = ocrSyncKey;
+
     setState((currentState) => {
       if (
         currentState.screen !== "review" ||
@@ -92,6 +97,7 @@ function App() {
         helperText: ocrPendingMessage,
         isOcrPending: true,
         ocrFileName: file.name,
+        ocrSyncKey,
       };
     });
 
@@ -105,7 +111,8 @@ function App() {
       setState((currentState) => {
         if (
           currentState.screen !== "review" ||
-          currentState.reviewId !== reviewId
+          currentState.reviewId !== reviewId ||
+          currentState.ocrSyncKey !== ocrSyncKey
         ) {
           return currentState;
         }
@@ -125,7 +132,8 @@ function App() {
       setState((currentState) => {
         if (
           currentState.screen !== "review" ||
-          currentState.reviewId !== reviewId
+          currentState.reviewId !== reviewId ||
+          currentState.ocrSyncKey !== ocrSyncKey
         ) {
           return currentState;
         }
@@ -183,6 +191,7 @@ function App() {
     return (
       <TextReview
         initialText={state.initialText}
+        initialTextSyncKey={state.ocrSyncKey}
         helperText={state.helperText}
         mediaControl={
           state.inputMethod === "screenshot"
