@@ -351,7 +351,7 @@ describe("App text review flow", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("미스터 노우")).toBeInTheDocument();
+      expect(screen.getByText("누가 잘못 AI")).toBeInTheDocument();
     });
 
     expect(screen.queryByText("임시 판정 결과")).not.toBeInTheDocument();
