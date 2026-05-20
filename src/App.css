@@ -23,7 +23,7 @@
 .screen--home {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
   background:
     linear-gradient(180deg, rgba(9, 18, 32, 0.74), rgba(18, 12, 20, 0.9)),
     #111827;
@@ -650,7 +650,7 @@
 
 .home-hero-red {
   position: relative;
-  min-height: 500px;
+  min-height: 456px;
   overflow: hidden;
   padding: 22px 18px 20px;
   border: 1px solid rgba(255, 230, 186, 0.24);
@@ -687,49 +687,12 @@
   animation: lua-shadow-breathe 3.8s ease-in-out infinite;
 }
 
-.home-hero-red__graphic {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.home-hero-red__number {
-  position: absolute;
-  color: rgba(255, 242, 202, 0.28);
-  font-weight: 1000;
-  line-height: 0.85;
-  letter-spacing: 0;
-  animation: red-hero-number-drift 7s ease-in-out infinite;
-}
-
-.home-hero-red__number--ai {
-  top: 28px;
-  right: 18px;
-  font-size: 74px;
-}
-
-.home-hero-red__number--score {
-  left: -12px;
-  top: 84px;
-  font-size: 104px;
-  opacity: 0.22;
-  animation-delay: 0.8s;
-}
-
-.home-hero-red__number--price {
-  right: -14px;
-  bottom: 214px;
-  font-size: 76px;
-  opacity: 0.22;
-  animation-delay: 1.5s;
-}
-
 .home-hero-red__mascot {
   position: relative;
   z-index: 1;
   display: grid;
   justify-items: center;
-  margin-top: 70px;
+  margin-top: 58px;
   animation:
     red-hero-mascot-in 520ms cubic-bezier(0.2, 0.9, 0.2, 1) both,
     lua-hero-float 3.8s ease-in-out 620ms infinite;
@@ -754,7 +717,7 @@
 .home-hero-red__copy {
   position: relative;
   z-index: 1;
-  margin-top: 16px;
+  margin-top: 18px;
 }
 
 .home-hero-red__eyebrow {
@@ -819,24 +782,26 @@
 
 .method-grid {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
 .method-card {
+  position: relative;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
-  gap: 12px;
-  align-items: center;
+  gap: 10px;
+  align-content: space-between;
   width: 100%;
-  min-height: 82px;
-  padding: 14px;
-  border: 1px solid #e5e8eb;
-  border-radius: 8px;
-  background: #ffffff;
+  min-height: 118px;
+  padding: 16px;
+  border: 1px solid rgba(213, 219, 233, 0.9);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.94);
   color: #191f28;
   font: inherit;
   text-align: left;
   cursor: pointer;
+  box-shadow: 0 10px 26px rgba(20, 28, 45, 0.06);
 }
 
 .method-card--evidence {
@@ -852,30 +817,148 @@
 .method-card__icon {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
-  background: #e8f3ff;
-  color: #1b64da;
+  justify-self: end;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #f3f5fb;
+  color: #5666f5;
 }
 
 .method-card__copy {
   display: grid;
   min-width: 0;
-  gap: 4px;
+  gap: 6px;
 }
 
 .method-card__copy strong {
   overflow-wrap: anywhere;
-  font-size: 17px;
+  font-size: 15px;
+  font-weight: 1000;
   line-height: 1.25;
 }
 
 .method-card__copy span {
   overflow-wrap: anywhere;
   color: #6b7684;
-  font-size: 14px;
+  font-size: 12px;
+  font-weight: 700;
   line-height: 1.35;
+}
+
+.home-dashboard {
+  display: grid;
+  gap: 12px;
+  margin: 0 -2px;
+  padding: 16px 12px 18px;
+  border-radius: 18px 18px 0 0;
+  background: #f7f7ff;
+  box-shadow: 0 -10px 34px rgba(4, 10, 22, 0.14);
+}
+
+.home-profile-card,
+.home-tip-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.home-profile-card img {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center top;
+  background: #ffe5ec;
+}
+
+.home-profile-card strong,
+.home-tip-card strong,
+.home-dashboard__heading strong {
+  display: block;
+  color: #191f28;
+  font-size: 14px;
+  font-weight: 1000;
+  line-height: 1.25;
+}
+
+.home-profile-card p,
+.home-tip-card p,
+.home-dashboard__heading p {
+  margin: 4px 0 0;
+  color: #6b7684;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.home-tip-card {
+  background: #f0f1f5;
+}
+
+.home-tip-card span {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #fff6d8;
+  color: #9a6a00;
+  font-size: 22px;
+}
+
+.home-dashboard__heading {
+  padding: 4px 2px 0;
+}
+
+.home-dashboard__heading strong {
+  font-size: 13px;
+}
+
+.home-dashboard__heading p {
+  margin-top: 2px;
+  color: #191f28;
+  font-size: 15px;
+  font-weight: 1000;
+}
+
+.home-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.home-quick-actions div {
+  display: grid;
+  gap: 7px;
+  min-height: 62px;
+  padding: 10px;
+  border: 1px solid #e5e8eb;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.home-quick-actions span {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #eef1ff;
+  color: #5666f5;
+  font-size: 11px;
+  font-weight: 1000;
+}
+
+.home-quick-actions strong {
+  color: #191f28;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
 }
 
 @keyframes red-hero-number-drift {

@@ -3,18 +3,6 @@ import { LuaAiMascot } from "../../shared/ui/LuaAiMascot";
 export function MotionHomeHero() {
   return (
     <section className="home-hero-red" aria-label="누가 잘못 AI 소개">
-      <div className="home-hero-red__graphic" aria-hidden="true">
-        <span className="home-hero-red__number home-hero-red__number--ai">
-          AI
-        </span>
-        <span className="home-hero-red__number home-hero-red__number--score">
-          62
-        </span>
-        <span className="home-hero-red__number home-hero-red__number--price">
-          990
-        </span>
-      </div>
-
       <div className="home-hero-red__mascot">
         <LuaAiMascot variant="hero" />
       </div>
