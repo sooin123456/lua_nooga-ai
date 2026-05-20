@@ -16,7 +16,18 @@ export function MotionHomeHero() {
       </div>
 
       <div className="home-hero-red__mascot">
-        <LuaAiMascot />
+        <LuaAiMascot variant="hero" />
+      </div>
+
+      <div className="home-hero-red__quick-cards" aria-hidden="true">
+        <div className="home-hero-red__quick-card">
+          <span>무료</span>
+          <strong>싸움 판독</strong>
+        </div>
+        <div className="home-hero-red__quick-card home-hero-red__quick-card--dark">
+          <span>AI 판례</span>
+          <strong>990원</strong>
+        </div>
       </div>
 
       <div className="home-hero-red__copy">

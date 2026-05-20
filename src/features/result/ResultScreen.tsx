@@ -57,7 +57,10 @@ export function ResultScreen({ result, onRestart }: ResultScreenProps) {
           partyBPercent={result.partyBPercent}
         />
 
-        <section className="result-section" aria-labelledby="result-reasons-title">
+        <section
+          className="result-section result-section--reasons"
+          aria-labelledby="result-reasons-title"
+        >
           <h2 id="result-reasons-title">근거 3개</h2>
           <ol className="result-reasons">
             {result.reasons.slice(0, 3).map((reason, index) => (
@@ -66,13 +69,19 @@ export function ResultScreen({ result, onRestart }: ResultScreenProps) {
           </ol>
         </section>
 
-        <section className="result-section" aria-labelledby="result-advice-title">
+        <section
+          className="result-section result-section--advice"
+          aria-labelledby="result-advice-title"
+        >
           <h2 id="result-advice-title">한 줄 조언</h2>
           <p className="result-advice">{result.advice}</p>
         </section>
 
         {!isSafetyResult ? (
-          <section className="result-section reward-box" aria-labelledby="reward-title">
+          <section
+            className="result-section reward-box result-section--reward"
+            aria-labelledby="reward-title"
+          >
             <h2 id="reward-title">이긴 사람 보상 추천</h2>
             <label className="reward-box__label" htmlFor="reward-wish">
               이긴 사람이 받고 싶은 것

@@ -1,6 +1,10 @@
-export function LuaAiMascot() {
+type LuaAiMascotProps = {
+  variant?: "default" | "hero";
+};
+
+export function LuaAiMascot({ variant = "default" }: LuaAiMascotProps) {
   return (
-    <figure className="lua-ai">
+    <figure className={`lua-ai lua-ai--${variant}`}>
       <img
         className="lua-ai__image"
         src="/lua-ai-judge.png"
