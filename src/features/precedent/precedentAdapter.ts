@@ -21,8 +21,10 @@ export const precedentDisclaimer =
   "판례는 유사한 참고 자료이며, 실제 법률 판단은 사건의 구체적 사실관계에 따라 달라져요.";
 
 export async function getPrecedentBasis(
-  _input: PrecedentBasisInput,
+  input: PrecedentBasisInput,
 ): Promise<PrecedentBasisResult> {
+  void input;
+
   return {
     status: "notConfigured",
     precedents: [],
