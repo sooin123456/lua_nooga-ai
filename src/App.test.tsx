@@ -338,7 +338,9 @@ describe("App text review flow", () => {
     await user.click(
       screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
     );
-    await user.click(screen.getByRole("button", { name: "판정 받기" }));
+    await user.click(
+      screen.getByRole("button", { name: /무료\s*판독\s*받기/ }),
+    );
     await user.click(screen.getByRole("button", { name: "돌아가기" }));
 
     resolveAnalyze({

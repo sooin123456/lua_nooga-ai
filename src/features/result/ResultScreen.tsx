@@ -23,7 +23,7 @@ export function ResultScreen({ result, onRestart }: ResultScreenProps) {
 
       <section
         className={`result-panel${isSafetyResult ? " result-panel--safety" : ""}`}
-        aria-label="판정 결과"
+        aria-label="판독 결과"
       >
         {isSafetyResult ? <p className="result-safety-badge">{safetyLabel}</p> : null}
 
@@ -57,8 +57,8 @@ export function ResultScreen({ result, onRestart }: ResultScreenProps) {
       </section>
 
       <p className="result-disclaimer">
-        입력된 내용 기준의 재미용 판독이에요. 법률 자문이 아니며, 실제 법적
-        판단은 구체적 사실관계에 따라 달라져요.
+        입력된 내용 기준의 재미용 판독이에요. 법적, 의료적, 심리적 판단이나
+        상담이 아니에요.
       </p>
 
       <Button type="button" onClick={onRestart}>

@@ -141,7 +141,7 @@ describe("TextReview", () => {
 
     expect(
       await screen.findByText(
-        "판정 중 문제가 생겼어요. 잠시 후 다시 시도해주세요.",
+        "판독 중 문제가 생겼어요. 잠시 후 다시 시도해주세요.",
       ),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "무료 판독 받기" })).toBeEnabled();

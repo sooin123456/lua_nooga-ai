@@ -14,7 +14,7 @@ type TextReviewProps = {
 };
 
 const submitFailureMessage =
-  "판정 중 문제가 생겼어요. 잠시 후 다시 시도해주세요.";
+  "판독 중 문제가 생겼어요. 잠시 후 다시 시도해주세요.";
 
 export function TextReview({
   initialText,
@@ -104,7 +104,7 @@ export function TextReview({
         }
         subtitleBottom={
           <Top.SubtitleParagraph size={15}>
-            판정 전에 대화 내용을 확인하고 고칠 수 있어요.
+            판독 전에 대화 내용을 확인하고 고칠 수 있어요.
           </Top.SubtitleParagraph>
         }
       />

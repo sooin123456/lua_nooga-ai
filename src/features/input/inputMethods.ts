@@ -14,7 +14,7 @@ export const inputMethods: InputMethodOption[] = [
   {
     id: "text",
     title: "카톡 싸움 붙여넣기",
-    description: "대화 내용을 붙여넣고 바로 판정해요.",
+    description: "대화 내용을 붙여넣고 바로 판독해요.",
     Icon: ClipboardPaste,
   },
   {
