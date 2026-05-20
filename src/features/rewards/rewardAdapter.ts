@@ -8,7 +8,7 @@ export type RewardCategory =
 
 export type RewardRecommendation = {
   category: RewardCategory;
-  searchTerms: [string, string, string];
+  searchTerms: readonly [string, string, string];
   reason: string;
   ctaLabel: "토스 쇼핑에서 비슷한 보상 찾기";
 };
@@ -16,7 +16,7 @@ export type RewardRecommendation = {
 const rewardRules: Array<{
   category: RewardCategory;
   keywords: string[];
-  searchTerms: [string, string, string];
+  searchTerms: readonly [string, string, string];
   reason: string;
 }> = [
   {
@@ -33,7 +33,7 @@ const rewardRules: Array<{
   },
   {
     category: "꽃/감정 회복",
-    keywords: ["꽃", "사과", "화해", "기분", "감정", "편지"],
+    keywords: ["꽃", "사과 카드", "사과 선물", "화해", "미안", "기분", "감정", "편지"],
     searchTerms: ["꽃다발", "미니 꽃", "사과 카드"],
     reason: "말로 부족한 사과를 모양으로 보여주기 좋아요.",
   },
@@ -53,20 +53,48 @@ const rewardRules: Array<{
 
 const fallback = {
   category: "생활 소품" as const,
-  searchTerms: ["작은 선물", "편지지", "캔들"] as [string, string, string],
+  searchTerms: ["작은 선물", "편지지", "캔들"] as const,
   reason: "취향을 잘 모를 때도 부담 없이 고르기 좋은 보상이에요.",
 };
 
+function normalizeForMatching(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, "");
+}
+
+function getMatchScore(normalizedWish: string, keyword: string) {
+  const normalizedKeyword = normalizeForMatching(keyword);
+
+  if (!normalizedKeyword || !normalizedWish.includes(normalizedKeyword)) {
+    return 0;
+  }
+
+  return normalizedKeyword.length;
+}
+
 export function createRewardRecommendation(wish: string): RewardRecommendation {
-  const normalizedWish = wish.trim().toLowerCase();
-  const match = rewardRules.find((rule) =>
-    rule.keywords.some((keyword) => normalizedWish.includes(keyword)),
-  );
-  const recommendation = match ?? fallback;
+  const normalizedWish = normalizeForMatching(wish);
+  const match = rewardRules.reduce<
+    | {
+        rule: (typeof rewardRules)[number];
+        score: number;
+      }
+    | undefined
+  >((bestMatch, rule) => {
+    const score = Math.max(
+      ...rule.keywords.map((keyword) => getMatchScore(normalizedWish, keyword)),
+    );
+
+    if (score === 0 || (bestMatch && bestMatch.score >= score)) {
+      return bestMatch;
+    }
+
+    return { rule, score };
+  }, undefined);
+  const recommendation = match?.rule ?? fallback;
 
   return {
     category: recommendation.category,
-    searchTerms: recommendation.searchTerms,
+    searchTerms: [...recommendation.searchTerms] as const,
     reason: recommendation.reason,
     ctaLabel: "토스 쇼핑에서 비슷한 보상 찾기",
   };
