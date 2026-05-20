@@ -69,4 +69,29 @@ describe("ResultScreen", () => {
 
     expect(onRestart).toHaveBeenCalledTimes(1);
   });
+
+  it("recommends a Toss Shopping reward from the winner wish", async () => {
+    const user = userEvent.setup();
+    renderResultScreen(<ResultScreen result={result} onRestart={vi.fn()} />);
+
+    await user.type(screen.getByLabelText("이긴 사람이 받고 싶은 것"), "달달한 거");
+    await user.click(screen.getByRole("button", { name: "보상 추천 받기" }));
+
+    expect(screen.getByText("디저트/간식")).toBeInTheDocument();
+    expect(screen.getByText("초콜릿 · 마카롱 · 케이크")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "토스 쇼핑에서 비슷한 보상 찾기" }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not show shopping reward flow for safety results", () => {
+    renderResultScreen(
+      <ResultScreen
+        result={{ ...result, safetyLevel: "urgent" }}
+        onRestart={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByLabelText("이긴 사람이 받고 싶은 것")).not.toBeInTheDocument();
+  });
 });

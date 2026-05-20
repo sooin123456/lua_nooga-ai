@@ -1,5 +1,10 @@
 import { Button, Top } from "@toss/tds-mobile";
+import { useState } from "react";
 import type { JudgmentResult } from "../analyzer/types";
+import {
+  createRewardRecommendation,
+  type RewardRecommendation,
+} from "../rewards/rewardAdapter";
 
 type ResultScreenProps = {
   result: JudgmentResult;
@@ -7,6 +12,9 @@ type ResultScreenProps = {
 };
 
 export function ResultScreen({ result, onRestart }: ResultScreenProps) {
+  const [rewardWish, setRewardWish] = useState("");
+  const [rewardRecommendation, setRewardRecommendation] =
+    useState<RewardRecommendation | null>(null);
   const isSafetyResult = result.safetyLevel !== "normal";
   const safetyLabel = result.safetyLevel === "urgent" ? "긴급 안전 확인" : "주의 필요";
 
@@ -54,6 +62,39 @@ export function ResultScreen({ result, onRestart }: ResultScreenProps) {
           <h2 id="result-advice-title">한 줄 조언</h2>
           <p className="result-advice">{result.advice}</p>
         </section>
+
+        {!isSafetyResult ? (
+          <section className="result-section reward-box" aria-labelledby="reward-title">
+            <h2 id="reward-title">이긴 사람 보상 추천</h2>
+            <label className="reward-box__label" htmlFor="reward-wish">
+              이긴 사람이 받고 싶은 것
+            </label>
+            <div className="reward-box__input-row">
+              <input
+                id="reward-wish"
+                value={rewardWish}
+                placeholder="예: 달달한 거, 커피, 귀여운 거"
+                onChange={(event) => setRewardWish(event.currentTarget.value)}
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  setRewardRecommendation(createRewardRecommendation(rewardWish))
+                }
+              >
+                보상 추천 받기
+              </button>
+            </div>
+            {rewardRecommendation ? (
+              <div className="reward-result">
+                <strong>{rewardRecommendation.category}</strong>
+                <p>{rewardRecommendation.searchTerms.join(" · ")}</p>
+                <span>{rewardRecommendation.reason}</span>
+                <button type="button">{rewardRecommendation.ctaLabel}</button>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
       </section>
 
       <p className="result-disclaimer">
