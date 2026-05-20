@@ -3,7 +3,7 @@
 ## App Basics
 
 - App name: 누가 잘못 AI
-- appName: nuga-wrong-ai
+- appName: lua-nooga-ai
 - Type: 비게임
 - Subtitle: 루아 AI가 대화 속 잘못 비율을 가볍게 판독해드려요
 - Primary color: #FFDF6E
@@ -41,7 +41,7 @@
 ## Submission Checklist
 
 - [x] GitHub repository pushed: https://github.com/sooin123456/Lua_Nooga-AI
-- [x] Latest `.ait` bundle generated: nuga-wrong-ai.ait
+- [x] Latest `.ait` bundle generated: lua-nooga-ai.ait
 - [x] App icon is 600 x 600 PNG with non-transparent background.
 - [x] Bundle size is under the 100MB upload policy.
 - [ ] Apps in Toss console workspace/app is created.

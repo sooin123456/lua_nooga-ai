@@ -1,7 +1,7 @@
 import { defineConfig } from "@apps-in-toss/web-framework/config";
 
 export default defineConfig({
-  appName: "nuga-wrong-ai",
+  appName: "lua-nooga-ai",
   brand: {
     displayName: "누가 잘못 AI",
     primaryColor: "#FFDF6E",
