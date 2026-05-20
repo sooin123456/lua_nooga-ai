@@ -26,6 +26,8 @@ npm run build
 
 `@apps-in-toss/ait-format@1.0.0`은 Node.js 24 이상을 요구합니다. 로컬 Node.js 버전이 낮으면 빌드가 실패할 수 있으니, 필요한 경우 Node.js 24 이상에서 다시 검증해 주세요. 현재 환경에서 빌드가 통과하더라도 패키지 경고가 있다면 이 기준을 유지합니다.
 
+`npm run build`는 현재 통과하지만 OCR/Tesseract 기능으로 번들 크기가 커져 Vite의 `Some chunks are larger than 500 kB after minification` 경고가 표시될 수 있습니다. 이 메시지는 빌드 실패가 아니라 번들 크기 경고입니다.
+
 ## 개인정보 원칙
 
 - MVP에서는 사용자가 입력한 텍스트, 이미지, 오디오를 서버에 저장하지 않습니다.
