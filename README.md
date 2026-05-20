@@ -1,26 +1,34 @@
-# mr-know-scaffold
+# 미스터 노우
 
-Apps in Toss 프로젝트입니다.
+미스터 노우는 Toss Apps in Toss WebView 환경에서 동작하는 미니 앱 MVP입니다. 카카오톡이나 일반 채팅에서 가져온 갈등 상황을 가볍게 판단해 주는 재미용 서비스입니다.
 
-## 시작하기
+## 주요 기능
+
+- 카카오톡/채팅 텍스트를 입력해 갈등 내용을 판단합니다.
+- 대화 스크린샷을 올리고 OCR로 추출한 내용을 확인한 뒤 판단합니다.
+- 녹음 흐름에서 사용자가 대화 내용을 텍스트로 확인하거나 직접 입력한 뒤 판단합니다.
+- 오디오 파일 흐름에서도 분석 전에 텍스트 확인 또는 수동 입력을 거칩니다.
+
+## 실행
 
 ```bash
+npm install
 npm run dev
 ```
 
-## 배포하기
-
-- 앱인토스 배포 API 키는 [앱인토스 콘솔](https://apps-in-toss.toss.im/) > 워크스페이스 > API 키 > 콘솔 API 키 에서 발급받을 수 있어요.
+## 검증
 
 ```bash
+npm run lint
+npm test
 npm run build
-npm run deploy
 ```
 
-## 유용한 링크
+`@apps-in-toss/ait-format@1.0.0`은 Node.js 24 이상을 요구합니다. 로컬 Node.js 버전이 낮으면 빌드가 실패할 수 있으니, 필요한 경우 Node.js 24 이상에서 다시 검증해 주세요. 현재 환경에서 빌드가 통과하더라도 패키지 경고가 있다면 이 기준을 유지합니다.
 
-- [앱인토스 콘솔](https://apps-in-toss.toss.im/)
-- [앱인토스 개발자센터](https://developers-apps-in-toss.toss.im/)
-- [앱인토스 개발자 커뮤니티](https://techchat-apps-in-toss.toss.im/)
+## 개인정보 원칙
 
-AI를 사용하시는 경우 [여기](https://developers-apps-in-toss.toss.im/development/llms.html)를 확인해보세요.
+- MVP에서는 사용자가 입력한 텍스트, 이미지, 오디오를 서버에 저장하지 않습니다.
+- 스크린샷 OCR은 기본적으로 브라우저에서 처리합니다.
+- 녹음 및 오디오 파일은 분석 전에 사용자의 텍스트 확인 또는 수동 입력을 필요로 합니다.
+- 결과는 재미용 판단이며 법률, 의료, 심리 상담 또는 전문적 판단을 대신하지 않습니다.
