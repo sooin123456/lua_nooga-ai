@@ -13,7 +13,7 @@ export function ResultScreen({ result, onRestart }: ResultScreenProps) {
   return (
     <main className="screen screen--result">
       <Top
-        title={<Top.TitleParagraph size={22}>판정 결과</Top.TitleParagraph>}
+        title={<Top.TitleParagraph size={22}>판독 결과</Top.TitleParagraph>}
         subtitleBottom={
           <Top.SubtitleParagraph size={15}>
             입력한 대화를 기준으로 가볍게 참고해 주세요.
@@ -28,7 +28,7 @@ export function ResultScreen({ result, onRestart }: ResultScreenProps) {
         {isSafetyResult ? <p className="result-safety-badge">{safetyLabel}</p> : null}
 
         <div className="result-verdict">
-          <p>오늘의 판정</p>
+          <p>오늘의 판결</p>
           <strong>{result.verdict}</strong>
         </div>
 
@@ -57,11 +57,12 @@ export function ResultScreen({ result, onRestart }: ResultScreenProps) {
       </section>
 
       <p className="result-disclaimer">
-        입력된 내용 기준의 재미용 판정이에요. 법적, 의료적, 심리적 판단이 아니에요.
+        입력된 내용 기준의 재미용 판독이에요. 법률 자문이 아니며, 실제 법적
+        판단은 구체적 사실관계에 따라 달라져요.
       </p>
 
       <Button type="button" onClick={onRestart}>
-        다시 판정하기
+        다시 판독하기
       </Button>
     </main>
   );

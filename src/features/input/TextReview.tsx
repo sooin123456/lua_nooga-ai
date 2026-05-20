@@ -72,7 +72,7 @@ export function TextReview({
     const trimmedText = text.trim();
 
     if (trimmedText.length === 0) {
-      setError("판정할 내용을 먼저 입력해주세요.");
+      setError("판독할 내용을 먼저 입력해주세요.");
       return;
     }
 
@@ -97,7 +97,11 @@ export function TextReview({
   return (
     <main className="screen screen--review" onPaste={onPaste}>
       <Top
-        title={<Top.TitleParagraph size={22}>내용 확인</Top.TitleParagraph>}
+        title={
+          <Top.TitleParagraph size={22}>
+            미스 노짱이 판독할 대화
+          </Top.TitleParagraph>
+        }
         subtitleBottom={
           <Top.SubtitleParagraph size={15}>
             판정 전에 대화 내용을 확인하고 고칠 수 있어요.
@@ -139,7 +143,7 @@ export function TextReview({
           돌아가기
         </Button>
         <Button type="button" disabled={isPending} onClick={handleSubmit}>
-          {isPending ? "판정 중..." : "판정 받기"}
+          {isPending ? "판독 중..." : "무료 판독 받기"}
         </Button>
       </div>
     </main>

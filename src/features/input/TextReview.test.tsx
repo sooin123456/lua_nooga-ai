@@ -59,10 +59,15 @@ describe("TextReview", () => {
       <TextReview initialText="   " onAnalyze={onAnalyze} onBack={vi.fn()} />,
     );
 
-    await user.click(screen.getByRole("button", { name: "판정 받기" }));
+    expect(
+      screen.getByRole("button", { name: "무료 판독 받기" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/미스 노짱/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "무료 판독 받기" }));
 
     expect(
-      screen.getByText("판정할 내용을 먼저 입력해주세요."),
+      screen.getByText("판독할 내용을 먼저 입력해주세요."),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("분석할 대화 내용")).toHaveAttribute(
       "aria-invalid",
@@ -90,7 +95,7 @@ describe("TextReview", () => {
     const textarea = screen.getByLabelText("분석할 대화 내용");
     await user.clear(textarea);
     await user.type(textarea, "  A: 미안해\nB: 다시 이야기하자  ");
-    await user.click(screen.getByRole("button", { name: "판정 받기" }));
+    await user.click(screen.getByRole("button", { name: "무료 판독 받기" }));
 
     expect(onAnalyze).toHaveBeenCalledWith("A: 미안해\nB: 다시 이야기하자");
   });
@@ -113,9 +118,9 @@ describe("TextReview", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "판정 받기" }));
+    await user.click(screen.getByRole("button", { name: "무료 판독 받기" }));
 
-    expect(screen.getByRole("button", { name: "판정 중..." })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "판독 중..." })).toBeDisabled();
     expect(onAnalyze).toHaveBeenCalledTimes(1);
 
     resolveAnalyze();
@@ -132,14 +137,14 @@ describe("TextReview", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "판정 받기" }));
+    await user.click(screen.getByRole("button", { name: "무료 판독 받기" }));
 
     expect(
       await screen.findByText(
         "판정 중 문제가 생겼어요. 잠시 후 다시 시도해주세요.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "판정 받기" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "무료 판독 받기" })).toBeEnabled();
   });
 
   it("syncs new initial text when the draft has not been edited", async () => {

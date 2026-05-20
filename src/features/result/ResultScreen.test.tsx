@@ -43,7 +43,8 @@ describe("ResultScreen", () => {
   it("shows verdict, percentages, exactly three reasons, advice, and disclaimer", () => {
     renderResultScreen(<ResultScreen result={result} onRestart={vi.fn()} />);
 
-    expect(screen.getByText("오늘의 판정")).toBeInTheDocument();
+    expect(screen.getByText("오늘의 판결")).toBeInTheDocument();
+    expect(screen.getByText("판독 결과")).toBeInTheDocument();
     expect(screen.getByText(result.verdict)).toBeInTheDocument();
     expect(screen.getByText("A 62%")).toBeInTheDocument();
     expect(screen.getByText("B 38%")).toBeInTheDocument();
@@ -53,9 +54,8 @@ describe("ResultScreen", () => {
     expect(reasons.map((reason) => reason.textContent)).toEqual(result.reasons);
 
     expect(screen.getByText(result.advice)).toBeInTheDocument();
-    expect(screen.getByText(/입력된 내용 기준의 재미용 판정/)).toBeInTheDocument();
     expect(
-      screen.getByText(/법적, 의료적, 심리적 판단이 아니에요/),
+      screen.getByText(/입력된 내용 기준의 재미용 판독/),
     ).toBeInTheDocument();
   });
 
@@ -65,7 +65,7 @@ describe("ResultScreen", () => {
 
     renderResultScreen(<ResultScreen result={result} onRestart={onRestart} />);
 
-    await user.click(screen.getByRole("button", { name: "다시 판정하기" }));
+    await user.click(screen.getByRole("button", { name: "다시 판독하기" }));
 
     expect(onRestart).toHaveBeenCalledTimes(1);
   });
