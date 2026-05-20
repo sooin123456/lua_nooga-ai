@@ -349,6 +349,33 @@
   line-height: 1.35;
 }
 
+.miss-nozzang {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  width: 108px;
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.miss-nozzang__image {
+  width: 96px;
+  height: 96px;
+  border: 1px solid #e5e8eb;
+  border-radius: 8px;
+  background: #ffffff;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.miss-nozzang figcaption {
+  margin: 0;
+  color: #4e5968;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
 .mascot {
   position: relative;
   width: 74px;

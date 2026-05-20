@@ -1,5 +1,5 @@
 import { Top } from "@toss/tds-mobile";
-import { MrKnowMascot } from "../../shared/ui/MrKnowMascot";
+import { MissNozzangMascot } from "../../shared/ui/MissNozzangMascot";
 import { inputMethods, type InputMethod } from "./inputMethods";
 
 type InputHomeProps = {
@@ -19,7 +19,7 @@ export function InputHome({ onSelect }: InputHomeProps) {
       />
 
       <section className="hero-panel" aria-label="누가 잘못 AI 소개">
-        <MrKnowMascot />
+        <MissNozzangMascot />
         <div>
           <p className="eyebrow">싸움 판독 자체는 무료예요</p>
           <h1>990원 내면 판례까지 뒤져드립니다</h1>
