@@ -167,6 +167,51 @@ describe("App text review flow", () => {
     );
   });
 
+  it("replaces a previous manual edit when a new screenshot resolves to the same OCR text", async () => {
+    const user = userEvent.setup();
+    const repeatedOcrText = "A: 같은 OCR 내용\nB: 다시 확인";
+    vi.mocked(extractTextFromImage).mockResolvedValue(repeatedOcrText);
+
+    render(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /증거 캡처 제출하기/ }),
+    );
+
+    await user.upload(
+      screen.getByLabelText("캡처 이미지 선택"),
+      new File(["first image bytes"], "first-chat.png", { type: "image/png" }),
+    );
+    await waitFor(() => {
+      expect(screen.getByLabelText("분석할 대화 내용")).toHaveValue(
+        repeatedOcrText,
+      );
+    });
+
+    await user.clear(screen.getByLabelText("분석할 대화 내용"));
+    await user.type(
+      screen.getByLabelText("분석할 대화 내용"),
+      "직접 고친 내용",
+    );
+
+    await user.upload(
+      screen.getByLabelText("캡처 이미지 선택"),
+      new File(["second image bytes"], "second-chat.png", {
+        type: "image/png",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("분석할 대화 내용")).toHaveValue(
+        repeatedOcrText,
+      );
+    });
+  });
+
   it("keeps home visible when a stale analysis resolves after going back", async () => {
     const user = userEvent.setup();
     let resolveAnalyze: (

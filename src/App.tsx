@@ -23,6 +23,7 @@ type AppState =
       isOcrPending?: boolean;
       ocrFileName?: string;
       ocrSyncKey?: number;
+      ocrDeliveredSyncKey?: number;
     }
   | { screen: "result"; result: JudgmentResult };
 
@@ -122,6 +123,7 @@ function App() {
           initialText: extractedText,
           helperText: ocrSuccessMessage,
           isOcrPending: false,
+          ocrDeliveredSyncKey: ocrSyncKey,
         };
       });
     } catch {
@@ -191,7 +193,8 @@ function App() {
     return (
       <TextReview
         initialText={state.initialText}
-        initialTextSyncKey={state.ocrSyncKey}
+        initialTextSyncKey={state.ocrDeliveredSyncKey}
+        draftSyncKey={state.ocrSyncKey}
         helperText={state.helperText}
         mediaControl={
           state.inputMethod === "screenshot"

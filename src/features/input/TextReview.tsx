@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 type TextReviewProps = {
   initialText: string;
   initialTextSyncKey?: number;
+  draftSyncKey?: number;
   helperText?: string;
   mediaControl?: ReactNode;
   onAnalyze(text: string): void | Promise<void>;
@@ -17,6 +18,7 @@ const submitFailureMessage =
 export function TextReview({
   initialText,
   initialTextSyncKey,
+  draftSyncKey,
   helperText,
   mediaControl,
   onAnalyze,
@@ -28,6 +30,7 @@ export function TextReview({
   const [hasUserEditedDraft, setHasUserEditedDraft] = useState(false);
   const isMountedRef = useRef(true);
   const lastInitialTextRef = useRef(initialText);
+  const lastInitialTextSyncKeyRef = useRef(initialTextSyncKey);
   const lastUserEditSyncKeyRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -37,12 +40,14 @@ export function TextReview({
   }, []);
 
   useEffect(() => {
-    const initialTextChanged = lastInitialTextRef.current !== initialText;
+    const syncKeyChanged =
+      lastInitialTextSyncKeyRef.current !== initialTextSyncKey;
     lastInitialTextRef.current = initialText;
+    lastInitialTextSyncKeyRef.current = initialTextSyncKey;
 
     if (initialTextSyncKey !== undefined) {
       if (
-        initialTextChanged &&
+        syncKeyChanged &&
         lastUserEditSyncKeyRef.current !== initialTextSyncKey
       ) {
         setText(initialText);
@@ -110,7 +115,7 @@ export function TextReview({
           aria-invalid={error ? "true" : undefined}
           value={text}
           onChange={(event) => {
-            lastUserEditSyncKeyRef.current = initialTextSyncKey;
+            lastUserEditSyncKeyRef.current = draftSyncKey;
             setHasUserEditedDraft(true);
             setText(event.target.value);
             if (error) {
