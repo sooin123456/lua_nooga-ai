@@ -12,7 +12,7 @@ export function LuaAiMascot({ variant = "default" }: LuaAiMascotProps) {
         height={96}
         alt="하얀 단발머리에 판사 가발을 쓰고 망치를 든 루아 AI"
       />
-      <figcaption>루아 AI</figcaption>
+      {variant === "default" ? <figcaption>루아 AI</figcaption> : null}
     </figure>
   );
 }

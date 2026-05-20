@@ -12,11 +12,6 @@ export function InputHome({ onSelect }: InputHomeProps) {
     <main className="screen screen--home">
       <Top
         title={<Top.TitleParagraph size={28}>누가 잘못 AI</Top.TitleParagraph>}
-        subtitleBottom={
-          <Top.SubtitleParagraph size={15}>
-            루아 AI가 판독해드립니다
-          </Top.SubtitleParagraph>
-        }
       />
 
       <MotionHomeHero />
