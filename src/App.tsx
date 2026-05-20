@@ -1,5 +1,5 @@
 import { Button, Top } from "@toss/tds-mobile";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import "./App.css";
 import { analyzeWithRules } from "./features/analyzer/ruleBasedAnalyzer";
 import type { JudgmentResult } from "./features/analyzer/types";
@@ -9,7 +9,12 @@ import { TextReview } from "./features/input/TextReview";
 
 type AppState =
   | { screen: "home" }
-  | { screen: "review"; initialText: string; helperText?: string }
+  | {
+      screen: "review";
+      reviewId: number;
+      initialText: string;
+      helperText?: string;
+    }
   | { screen: "result"; submittedText: string; result: JudgmentResult };
 
 const starterSampleText = `A: 너는 항상 내 말은 안 듣잖아.
@@ -27,12 +32,21 @@ const reviewHelpers: Partial<Record<InputMethod, string>> = {
 
 function App() {
   const [state, setState] = useState<AppState>({ screen: "home" });
+  const activeReviewIdRef = useRef(0);
+
+  const goHome = () => {
+    activeReviewIdRef.current += 1;
+    setState({ screen: "home" });
+  };
 
   const handleSelect = (method: InputMethod) => {
     const selectedMethod = inputMethods.find(({ id }) => id === method);
+    const reviewId = activeReviewIdRef.current + 1;
+    activeReviewIdRef.current = reviewId;
 
     setState({
       screen: "review",
+      reviewId,
       initialText: method === "text" ? starterSampleText : "",
       helperText:
         method === "text"
@@ -41,8 +55,13 @@ function App() {
     });
   };
 
-  const handleAnalyze = async (text: string) => {
+  const handleAnalyze = async (text: string, reviewId: number) => {
     const result = await analyzeWithRules({ text });
+
+    if (reviewId !== activeReviewIdRef.current) {
+      return;
+    }
+
     setState({ screen: "result", submittedText: text, result });
   };
 
@@ -51,8 +70,8 @@ function App() {
       <TextReview
         initialText={state.initialText}
         helperText={state.helperText}
-        onAnalyze={handleAnalyze}
-        onBack={() => setState({ screen: "home" })}
+        onAnalyze={(text) => handleAnalyze(text, state.reviewId)}
+        onBack={goHome}
       />
     );
   }
@@ -84,7 +103,7 @@ function App() {
           <Button
             type="button"
             variant="weak"
-            onClick={() => setState({ screen: "home" })}
+            onClick={goHome}
           >
             처음으로
           </Button>

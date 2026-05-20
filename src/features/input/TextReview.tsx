@@ -1,12 +1,15 @@
 import { Button, Top } from "@toss/tds-mobile";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type TextReviewProps = {
   initialText: string;
   helperText?: string;
-  onAnalyze(text: string): void;
+  onAnalyze(text: string): void | Promise<void>;
   onBack(): void;
 };
+
+const submitFailureMessage =
+  "판정 중 문제가 생겼어요. 잠시 후 다시 시도해주세요.";
 
 export function TextReview({
   initialText,
@@ -16,8 +19,34 @@ export function TextReview({
 }: TextReviewProps) {
   const [text, setText] = useState(initialText);
   const [error, setError] = useState("");
+  const [isPending, setIsPending] = useState(false);
+  const isMountedRef = useRef(true);
+  const previousInitialTextRef = useRef(initialText);
 
-  const handleSubmit = () => {
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const previousInitialText = previousInitialTextRef.current;
+
+    setText((currentText) => {
+      if (currentText === previousInitialText) {
+        return initialText;
+      }
+
+      return currentText;
+    });
+    previousInitialTextRef.current = initialText;
+  }, [initialText]);
+
+  const handleSubmit = async () => {
+    if (isPending) {
+      return;
+    }
+
     const trimmedText = text.trim();
 
     if (trimmedText.length === 0) {
@@ -26,8 +55,22 @@ export function TextReview({
     }
 
     setError("");
-    onAnalyze(trimmedText);
+    setIsPending(true);
+
+    try {
+      await onAnalyze(trimmedText);
+    } catch {
+      if (isMountedRef.current) {
+        setError(submitFailureMessage);
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsPending(false);
+      }
+    }
   };
+
+  const errorId = error ? "analysis-text-error" : undefined;
 
   return (
     <main className="screen screen--review">
@@ -47,6 +90,8 @@ export function TextReview({
         <textarea
           id="analysis-text"
           aria-label="분석할 대화 내용"
+          aria-describedby={errorId}
+          aria-invalid={error ? "true" : undefined}
           value={text}
           onChange={(event) => {
             setText(event.target.value);
@@ -57,15 +102,19 @@ export function TextReview({
           rows={12}
           placeholder="A: 어떤 말이 오갔는지 붙여넣어 주세요."
         />
-        {error ? <p className="form-error">{error}</p> : null}
+        {error ? (
+          <p className="form-error" id="analysis-text-error">
+            {error}
+          </p>
+        ) : null}
       </section>
 
       <div className="action-row">
         <Button type="button" variant="weak" onClick={onBack}>
           돌아가기
         </Button>
-        <Button type="button" onClick={handleSubmit}>
-          판정 받기
+        <Button type="button" disabled={isPending} onClick={handleSubmit}>
+          {isPending ? "판정 중..." : "판정 받기"}
         </Button>
       </div>
     </main>
