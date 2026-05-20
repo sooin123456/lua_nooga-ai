@@ -1,3 +1,4 @@
+import { Link2, MessageCircle, Plus } from "lucide-react";
 import { Top } from "@toss/tds-mobile";
 import { EvidenceMethodCard } from "./EvidenceMethodCard";
 import { inputMethods, type InputMethod } from "./inputMethods";
@@ -43,16 +44,22 @@ export function InputHome({ onSelect }: InputHomeProps) {
 
         <div className="home-quick-actions" aria-hidden="true">
           <div>
-            <span>카톡</span>
+            <span>
+              <MessageCircle size={16} strokeWidth={2.4} />
+            </span>
             <strong>초대</strong>
           </div>
           <div>
-            <span>링크</span>
+            <span>
+              <Link2 size={16} strokeWidth={2.4} />
+            </span>
             <strong>공유</strong>
           </div>
           <div>
-            <span>ID</span>
-            <strong>추가</strong>
+            <span>
+              <Plus size={17} strokeWidth={2.5} />
+            </span>
+            <strong>판정방 만들기</strong>
           </div>
         </div>
 
