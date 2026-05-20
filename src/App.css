@@ -396,6 +396,54 @@
   line-height: 1.45;
 }
 
+.premium-panel {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #d4e8ff;
+  border-radius: 8px;
+  background: #e8f3ff;
+}
+
+.premium-panel h2,
+.premium-panel p {
+  margin: 0;
+}
+
+.premium-panel h2 {
+  color: #191f28;
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+.premium-panel p {
+  color: #4e5968;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.premium-panel__status {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.premium-panel__status strong,
+.premium-panel__status span {
+  color: #191f28;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.premium-panel__status p {
+  color: #6b7684;
+  font-size: 13px;
+}
+
 .result-disclaimer {
   color: #6b7684;
   font-size: 13px;

@@ -108,4 +108,27 @@ describe("ResultScreen", () => {
 
     expect(screen.queryByLabelText("이긴 사람이 받고 싶은 것")).not.toBeInTheDocument();
   });
+
+  it("opens the 990원 precedent setup panel without charging", async () => {
+    const user = userEvent.setup();
+    renderResultScreen(<ResultScreen result={result} onRestart={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "990원 판례 판독 열기" }));
+
+    expect(screen.getByText("990원 판례 판독")).toBeInTheDocument();
+    expect(screen.getByText("인앱결제 연결 예정")).toBeInTheDocument();
+    expect(screen.getByText("판례 검색 서버 연결 예정")).toBeInTheDocument();
+    expect(screen.getByText(/법률 판단은 사건의 구체적 사실관계/)).toBeInTheDocument();
+  });
+
+  it("does not show premium precedent CTA for safety results", () => {
+    renderResultScreen(
+      <ResultScreen
+        result={{ ...result, safetyLevel: "caution" }}
+        onRestart={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "990원 판례 판독 열기" })).not.toBeInTheDocument();
+  });
 });

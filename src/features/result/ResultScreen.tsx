@@ -1,6 +1,8 @@
 import { Button, Top } from "@toss/tds-mobile";
 import { useState } from "react";
 import type { JudgmentResult } from "../analyzer/types";
+import { createPremiumProduct, requestPremiumVerdict } from "../premium/premiumAdapter";
+import { precedentDisclaimer } from "../precedent/precedentAdapter";
 import {
   createRewardRecommendation,
   type RewardRecommendation,
@@ -15,6 +17,8 @@ export function ResultScreen({ result, onRestart }: ResultScreenProps) {
   const [rewardWish, setRewardWish] = useState("");
   const [rewardRecommendation, setRewardRecommendation] =
     useState<RewardRecommendation | null>(null);
+  const [premiumMessage, setPremiumMessage] = useState<string | null>(null);
+  const premiumProduct = createPremiumProduct();
   const isSafetyResult = result.safetyLevel !== "normal";
   const safetyLabel = result.safetyLevel === "urgent" ? "긴급 안전 확인" : "주의 필요";
   const handleRewardSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -95,6 +99,32 @@ export function ResultScreen({ result, onRestart }: ResultScreenProps) {
                 <button type="button" disabled>
                   토스 쇼핑 연결 준비 중
                 </button>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
+
+        {!isSafetyResult ? (
+          <section className="premium-panel" aria-labelledby="premium-title">
+            <div>
+              <p className="eyebrow">판례 근거는 나중에 서버로 연결</p>
+              <h2 id="premium-title">{premiumProduct.title}</h2>
+              <p>{premiumProduct.description}</p>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                const paymentState = await requestPremiumVerdict();
+                setPremiumMessage(paymentState.message);
+              }}
+            >
+              990원 판례 판독 열기
+            </button>
+            {premiumMessage ? (
+              <div className="premium-panel__status" role="status">
+                <strong>{premiumMessage}</strong>
+                <span>판례 검색 서버 연결 예정</span>
+                <p>{precedentDisclaimer}</p>
               </div>
             ) : null}
           </section>
