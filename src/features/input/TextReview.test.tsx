@@ -62,7 +62,7 @@ describe("TextReview", () => {
     expect(
       screen.getByRole("button", { name: "무료 판독 받기" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/미스 노짱/)).toBeInTheDocument();
+    expect(screen.getByText(/루아 AI/)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "무료 판독 받기" }));
 

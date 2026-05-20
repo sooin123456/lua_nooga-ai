@@ -484,7 +484,7 @@
   line-height: 1.35;
 }
 
-.miss-nozzang {
+.lua-ai {
   display: grid;
   gap: 6px;
   justify-items: center;
@@ -493,7 +493,7 @@
   flex: 0 0 auto;
 }
 
-.miss-nozzang__image {
+.lua-ai__image {
   width: 96px;
   height: 96px;
   border: 1px solid #e5e8eb;
@@ -503,7 +503,7 @@
   object-position: center top;
 }
 
-.miss-nozzang figcaption {
+.lua-ai figcaption {
   margin: 0;
   color: #4e5968;
   font-size: 12px;

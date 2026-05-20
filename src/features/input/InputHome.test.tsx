@@ -8,7 +8,7 @@ describe("InputHome", () => {
     render(<InputHome onSelect={vi.fn()} />);
 
     expect(screen.getByText("누가 잘못 AI")).toBeInTheDocument();
-    expect(screen.getByText("미스 노짱이 판독해드립니다")).toBeInTheDocument();
+    expect(screen.getByText("루아 AI가 판독해드립니다")).toBeInTheDocument();
     expect(
       screen.getByText("990원 내면 판례까지 뒤져드립니다"),
     ).toBeInTheDocument();

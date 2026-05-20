@@ -1,5 +1,5 @@
 import { Top } from "@toss/tds-mobile";
-import { MissNozzangMascot } from "../../shared/ui/MissNozzangMascot";
+import { LuaAiMascot } from "../../shared/ui/LuaAiMascot";
 import { inputMethods, type InputMethod } from "./inputMethods";
 
 type InputHomeProps = {
@@ -13,13 +13,13 @@ export function InputHome({ onSelect }: InputHomeProps) {
         title={<Top.TitleParagraph size={28}>누가 잘못 AI</Top.TitleParagraph>}
         subtitleBottom={
           <Top.SubtitleParagraph size={15}>
-            미스 노짱이 판독해드립니다
+            루아 AI가 판독해드립니다
           </Top.SubtitleParagraph>
         }
       />
 
       <section className="hero-panel" aria-label="누가 잘못 AI 소개">
-        <MissNozzangMascot />
+        <LuaAiMascot />
         <div>
           <p className="eyebrow">싸움 판독 자체는 무료예요</p>
           <h1>990원 내면 판례까지 뒤져드립니다</h1>

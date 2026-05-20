@@ -99,7 +99,7 @@ export function TextReview({
       <Top
         title={
           <Top.TitleParagraph size={22}>
-            미스 노짱이 판독할 대화
+            루아 AI가 판독할 대화
           </Top.TitleParagraph>
         }
         subtitleBottom={

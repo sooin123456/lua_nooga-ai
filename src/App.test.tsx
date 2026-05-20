@@ -377,7 +377,7 @@ describe("App text review flow", () => {
     );
 
     expect(screen.getByText("누가 잘못 AI")).toBeInTheDocument();
-    expect(screen.getByText("미스 노짱이 판독해드립니다")).toBeInTheDocument();
+    expect(screen.getByText("루아 AI가 판독해드립니다")).toBeInTheDocument();
 
     await user.click(
       screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
