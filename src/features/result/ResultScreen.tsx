@@ -18,6 +18,7 @@ export function ResultScreen({ result, onRestart }: ResultScreenProps) {
   const [rewardRecommendation, setRewardRecommendation] =
     useState<RewardRecommendation | null>(null);
   const [premiumMessage, setPremiumMessage] = useState<string | null>(null);
+  const [isPremiumPending, setIsPremiumPending] = useState(false);
   const premiumProduct = createPremiumProduct();
   const isSafetyResult = result.safetyLevel !== "normal";
   const safetyLabel = result.safetyLevel === "urgent" ? "긴급 안전 확인" : "주의 필요";
@@ -110,15 +111,32 @@ export function ResultScreen({ result, onRestart }: ResultScreenProps) {
               <p className="eyebrow">판례 근거는 나중에 서버로 연결</p>
               <h2 id="premium-title">{premiumProduct.title}</h2>
               <p>{premiumProduct.description}</p>
+              <p>아직 결제되지 않아요. 결제 연결 전 준비 화면이에요.</p>
             </div>
             <button
               type="button"
+              disabled={isPremiumPending}
               onClick={async () => {
-                const paymentState = await requestPremiumVerdict();
-                setPremiumMessage(paymentState.message);
+                if (isPremiumPending) {
+                  return;
+                }
+
+                setIsPremiumPending(true);
+                setPremiumMessage("준비 상태 확인 중");
+
+                try {
+                  const paymentState = await requestPremiumVerdict();
+                  setPremiumMessage(paymentState.message);
+                } catch {
+                  setPremiumMessage("준비 상태 확인에 실패했어요");
+                } finally {
+                  setIsPremiumPending(false);
+                }
               }}
             >
-              990원 판례 판독 열기
+              {isPremiumPending
+                ? "준비 상태 확인 중"
+                : "결제 없이 판례 판독 미리보기"}
             </button>
             {premiumMessage ? (
               <div className="premium-panel__status" role="status">

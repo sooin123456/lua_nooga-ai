@@ -113,7 +113,13 @@ describe("ResultScreen", () => {
     const user = userEvent.setup();
     renderResultScreen(<ResultScreen result={result} onRestart={vi.fn()} />);
 
-    await user.click(screen.getByRole("button", { name: "990원 판례 판독 열기" }));
+    expect(
+      screen.getByText("아직 결제되지 않아요. 결제 연결 전 준비 화면이에요."),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "결제 없이 판례 판독 미리보기" }),
+    );
 
     expect(screen.getByText("990원 판례 판독")).toBeInTheDocument();
     expect(screen.getByText("인앱결제 연결 예정")).toBeInTheDocument();
@@ -129,6 +135,8 @@ describe("ResultScreen", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "990원 판례 판독 열기" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "결제 없이 판례 판독 미리보기" }),
+    ).not.toBeInTheDocument();
   });
 });
