@@ -66,6 +66,22 @@ export async function analyzeWithRules(input: AnalyzeInput): Promise<JudgmentRes
     };
   }
 
+  if (safetyLevel === "caution") {
+    return {
+      verdict: "안전 확인이 먼저 필요한 대화예요",
+      partyAPercent: 50,
+      partyBPercent: 50,
+      reasons: [
+        "휴대폰 검사, 허락 요구, 통제처럼 보일 수 있는 표현이 포함돼 있어요.",
+        "이런 신호가 있을 때는 누가 더 잘못했는지보다 안전한 거리와 선택권이 중요해요.",
+        "입력된 대화만으로 단정할 수 없어서 승패식 판정은 하지 않을게요.",
+      ],
+      advice:
+        "불편함이 반복되면 혼자 설득하려 하기보다 믿을 수 있는 사람이나 전문 기관에 도움을 요청하세요.",
+      safetyLevel,
+    };
+  }
+
   const { aText, bText } = splitPartyText(text);
   const hasPartyMarkers = partyAPattern.test(text) || partyBPattern.test(text);
 
@@ -78,10 +94,7 @@ export async function analyzeWithRules(input: AnalyzeInput): Promise<JudgmentRes
   const leadingPercent = Math.max(partyAPercent, partyBPercent);
 
   return {
-    verdict:
-      safetyLevel === "caution"
-        ? "살짝 위험 신호가 보여요. 판정은 조심스럽게 볼게요"
-        : `${leadingParty}가 ${leadingPercent}% 정도 더 선 넘었어요`,
+    verdict: `${leadingParty}가 ${leadingPercent}% 정도 더 선 넘었어요`,
     partyAPercent,
     partyBPercent,
     reasons: [

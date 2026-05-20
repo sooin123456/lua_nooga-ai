@@ -34,6 +34,21 @@ describe("analyzeWithRules", () => {
     expect(result.verdict).toContain("안전");
   });
 
+  it("returns a safety-first caution result for coercive-control signals", async () => {
+    const result = await analyzeWithRules({
+      text: "A: 휴대폰 검사하게 잠금 풀어. 앞으로는 나한테 허락받고 친구 만나.\nB: 그건 너무 숨 막혀.",
+    });
+
+    expect(result.safetyLevel).toBe("caution");
+    expect(result.partyAPercent).toBe(50);
+    expect(result.partyBPercent).toBe(50);
+    expect(result.verdict).toContain("안전");
+    expect(result.verdict).not.toContain("%");
+    expect(result.advice).toContain("도움");
+    expect(result.advice).not.toContain("A는 먼저");
+    expect(result.advice).not.toContain("B는 먼저");
+  });
+
   it("scores blameful 남친 and 여친 party markers consistently", async () => {
     const result = await analyzeWithRules({
       text: "남친: 다 네 탓이야. 너는 항상 이기적이야. 됐고 내 말만 들어.\n여친: 내가 늦게 말한 건 미안해. 다시 이야기하자.",

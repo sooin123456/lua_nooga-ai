@@ -1,5 +1,5 @@
 import { Button, Top } from "@toss/tds-mobile";
-import type { ReactNode } from "react";
+import type { ClipboardEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 type TextReviewProps = {
@@ -8,6 +8,7 @@ type TextReviewProps = {
   draftSyncKey?: number;
   helperText?: string;
   mediaControl?: ReactNode;
+  onPaste?: (event: ClipboardEvent<HTMLElement>) => void;
   onAnalyze(text: string): void | Promise<void>;
   onBack(): void;
 };
@@ -21,6 +22,7 @@ export function TextReview({
   draftSyncKey,
   helperText,
   mediaControl,
+  onPaste,
   onAnalyze,
   onBack,
 }: TextReviewProps) {
@@ -93,7 +95,7 @@ export function TextReview({
   const errorId = error ? "analysis-text-error" : undefined;
 
   return (
-    <main className="screen screen--review">
+    <main className="screen screen--review" onPaste={onPaste}>
       <Top
         title={<Top.TitleParagraph size={22}>내용 확인</Top.TitleParagraph>}
         subtitleBottom={

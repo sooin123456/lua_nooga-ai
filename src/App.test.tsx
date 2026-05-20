@@ -1,5 +1,5 @@
 import { ThemeProvider } from "@toss/tds-mobile";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import App from "./App";
@@ -35,6 +35,52 @@ beforeAll(() => {
 });
 
 describe("App text review flow", () => {
+  it("runs OCR for a pasted screenshot image and fills review text", async () => {
+    const user = userEvent.setup();
+    vi.mocked(extractTextFromImage).mockResolvedValue(
+      "A: 붙여넣은 캡처\nB: 확인했어",
+    );
+
+    render(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /증거 캡처 제출하기/ }),
+    );
+
+    const pastedFile = new File(["pasted image bytes"], "pasted-chat.png", {
+      type: "image/png",
+    });
+
+    fireEvent.paste(screen.getByLabelText("분석할 대화 내용"), {
+      clipboardData: {
+        items: [
+          {
+            kind: "file",
+            type: "image/png",
+            getAsFile: () => pastedFile,
+          },
+        ],
+      },
+    });
+
+    expect(extractTextFromImage).toHaveBeenCalledWith(pastedFile);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("분석할 대화 내용")).toHaveValue(
+        "A: 붙여넣은 캡처\nB: 확인했어",
+      );
+    });
+    expect(
+      screen.getByText(
+        "캡처에서 글자를 읽었어요. 내용을 확인하고 고쳐 주세요.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("runs OCR for a selected screenshot and fills review text", async () => {
     const user = userEvent.setup();
     vi.mocked(extractTextFromImage).mockResolvedValue("A: 사과해\nB: 미안해");
@@ -94,6 +140,65 @@ describe("App text review flow", () => {
 
     expect(screen.getByLabelText("분석할 대화 내용")).toHaveValue(
       "직접 적은 대화",
+    );
+  });
+
+  it("keeps the pasted screenshot preview visible when OCR fails", async () => {
+    const user = userEvent.setup();
+    vi.mocked(extractTextFromImage).mockRejectedValue(
+      new Error(ocrFailureMessage),
+    );
+    vi.spyOn(URL, "createObjectURL").mockReturnValue(
+      "blob:http://localhost/pasted-chat",
+    );
+    const revokeObjectUrl = vi
+      .spyOn(URL, "revokeObjectURL")
+      .mockImplementation(() => undefined);
+
+    render(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /증거 캡처 제출하기/ }),
+    );
+
+    const pastedFile = new File(["pasted image bytes"], "pasted-chat.png", {
+      type: "image/png",
+    });
+
+    fireEvent.paste(screen.getByLabelText("분석할 대화 내용"), {
+      clipboardData: {
+        items: [
+          {
+            kind: "file",
+            type: "image/png",
+            getAsFile: () => pastedFile,
+          },
+        ],
+      },
+    });
+
+    expect(await screen.findByText(ocrFailureMessage)).toBeInTheDocument();
+    expect(screen.getByAltText("선택한 캡처 미리보기")).toHaveAttribute(
+      "src",
+      "blob:http://localhost/pasted-chat",
+    );
+
+    await user.type(
+      screen.getByLabelText("분석할 대화 내용"),
+      "직접 적은 대화",
+    );
+    expect(screen.getByLabelText("분석할 대화 내용")).toHaveValue(
+      "직접 적은 대화",
+    );
+
+    await user.click(screen.getByRole("button", { name: "돌아가기" }));
+
+    expect(revokeObjectUrl).toHaveBeenCalledWith(
+      "blob:http://localhost/pasted-chat",
     );
   });
 

@@ -1,5 +1,5 @@
-import type { ChangeEvent } from "react";
-import { useRef, useState } from "react";
+import type { ChangeEvent, ClipboardEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import { analyzeWithRules } from "./features/analyzer/ruleBasedAnalyzer";
 import type { JudgmentResult } from "./features/analyzer/types";
@@ -26,6 +26,7 @@ type AppState =
       helperText?: string;
       isOcrPending?: boolean;
       ocrFileName?: string;
+      screenshotPreviewUrl?: string;
       audioFileName?: string;
       ocrSyncKey?: number;
       ocrDeliveredSyncKey?: number;
@@ -54,9 +55,32 @@ function App() {
   const [state, setState] = useState<AppState>({ screen: "home" });
   const activeReviewIdRef = useRef(0);
   const ocrSyncKeyRef = useRef(0);
+  const screenshotPreviewUrlRef = useRef<string | undefined>(undefined);
+
+  const revokeScreenshotPreviewUrl = () => {
+    if (screenshotPreviewUrlRef.current) {
+      URL.revokeObjectURL(screenshotPreviewUrlRef.current);
+      screenshotPreviewUrlRef.current = undefined;
+    }
+  };
+
+  const createScreenshotPreviewUrl = (file: File) => {
+    if (typeof URL.createObjectURL !== "function") {
+      return undefined;
+    }
+
+    revokeScreenshotPreviewUrl();
+
+    const previewUrl = URL.createObjectURL(file);
+    screenshotPreviewUrlRef.current = previewUrl;
+    return previewUrl;
+  };
+
+  useEffect(() => revokeScreenshotPreviewUrl, []);
 
   const goHome = () => {
     activeReviewIdRef.current += 1;
+    revokeScreenshotPreviewUrl();
     setState({ screen: "home" });
   };
 
@@ -77,18 +101,10 @@ function App() {
     });
   };
 
-  const handleScreenshotFileChange = async (
-    event: ChangeEvent<HTMLInputElement>,
-    reviewId: number,
-  ) => {
-    const file = event.currentTarget.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
+  const processScreenshotImage = async (file: File, reviewId: number) => {
     const ocrSyncKey = ocrSyncKeyRef.current + 1;
     ocrSyncKeyRef.current = ocrSyncKey;
+    const screenshotPreviewUrl = createScreenshotPreviewUrl(file);
 
     setState((currentState) => {
       if (
@@ -102,7 +118,8 @@ function App() {
         ...currentState,
         helperText: ocrPendingMessage,
         isOcrPending: true,
-        ocrFileName: file.name,
+        ocrFileName: file.name || "붙여넣은 이미지",
+        screenshotPreviewUrl,
         ocrSyncKey,
       };
     });
@@ -154,6 +171,36 @@ function App() {
     }
   };
 
+  const handleScreenshotFileChange = async (
+    event: ChangeEvent<HTMLInputElement>,
+    reviewId: number,
+  ) => {
+    const file = event.currentTarget.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    await processScreenshotImage(file, reviewId);
+  };
+
+  const handleScreenshotPaste = (
+    event: ClipboardEvent<HTMLElement>,
+    reviewId: number,
+  ) => {
+    const pastedImageItem = Array.from(event.clipboardData.items).find(
+      (item) => item.kind === "file" && item.type.startsWith("image/"),
+    );
+    const file = pastedImageItem?.getAsFile();
+
+    if (!file) {
+      return;
+    }
+
+    event.preventDefault();
+    void processScreenshotImage(file, reviewId);
+  };
+
   const updateAudioHelper = async (
     reviewId: number,
     input: TranscriptionSource,
@@ -184,6 +231,7 @@ function App() {
     reviewId: number,
     isOcrPending?: boolean,
     ocrFileName?: string,
+    screenshotPreviewUrl?: string,
   ) => {
     const inputId = `screenshot-file-${reviewId}`;
 
@@ -205,6 +253,13 @@ function App() {
           <p className="media-control__status">
             {isOcrPending ? "읽는 중" : "선택됨"}: {ocrFileName}
           </p>
+        ) : null}
+        {screenshotPreviewUrl ? (
+          <img
+            className="media-preview"
+            src={screenshotPreviewUrl}
+            alt="선택한 캡처 미리보기"
+          />
         ) : null}
       </div>
     );
@@ -262,6 +317,7 @@ function App() {
       return;
     }
 
+    revokeScreenshotPreviewUrl();
     setState({ screen: "result", result });
   };
 
@@ -275,6 +331,7 @@ function App() {
         state.reviewId,
         state.isOcrPending,
         state.ocrFileName,
+        state.screenshotPreviewUrl,
       );
     }
 
@@ -297,6 +354,11 @@ function App() {
         draftSyncKey={state.ocrSyncKey}
         helperText={state.helperText}
         mediaControl={renderMediaControl()}
+        onPaste={
+          state.inputMethod === "screenshot"
+            ? (event) => handleScreenshotPaste(event, state.reviewId)
+            : undefined
+        }
         onAnalyze={(text) => handleAnalyze(text, state.reviewId)}
         onBack={goHome}
       />
