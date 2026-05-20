@@ -1,5 +1,4 @@
 import { Link2, MessageCircle, Plus } from "lucide-react";
-import { Top } from "@toss/tds-mobile";
 import { EvidenceMethodCard } from "./EvidenceMethodCard";
 import { inputMethods, type InputMethod } from "./inputMethods";
 
@@ -10,10 +9,6 @@ type InputHomeProps = {
 export function InputHome({ onSelect }: InputHomeProps) {
   return (
     <main className="screen screen--home">
-      <Top
-        title={<Top.TitleParagraph size={28}>누가 잘못 AI</Top.TitleParagraph>}
-      />
-
       <section className="home-dashboard" aria-label="입력 방식 선택">
         <article className="home-profile-card">
           <img

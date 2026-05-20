@@ -7,7 +7,7 @@ describe("InputHome", () => {
   it("shows the main dashboard trust and status cards", () => {
     render(<InputHome onSelect={vi.fn()} />);
 
-    expect(screen.getByText("누가 잘못 AI")).toBeInTheDocument();
+    expect(screen.getByText("루아 AI")).toBeInTheDocument();
     expect(screen.getByText("오늘의 싸움 판독소")).toBeInTheDocument();
     expect(screen.getByText("최근 판정")).toBeInTheDocument();
     expect(screen.getByText("990원 판례 판독")).toBeInTheDocument();
