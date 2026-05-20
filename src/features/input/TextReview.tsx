@@ -104,7 +104,7 @@ export function TextReview({
         }
         subtitleBottom={
           <Top.SubtitleParagraph size={15}>
-            판독 전에 대화 내용을 확인하고 고칠 수 있어요.
+            판독 전에 증거 내용을 확인하고 고칠 수 있어요.
           </Top.SubtitleParagraph>
         }
       />
