@@ -378,6 +378,7 @@ describe("App text review flow", () => {
 
     expect(screen.getByText("누가 잘못 AI")).toBeInTheDocument();
     expect(screen.getByText("루아 AI가 판독해드립니다")).toBeInTheDocument();
+    expect(screen.getByText("사건을 접수해 주세요")).toBeInTheDocument();
 
     await user.click(
       screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
@@ -387,6 +388,8 @@ describe("App text review flow", () => {
     );
 
     expect(await screen.findByText("오늘의 판결")).toBeInTheDocument();
+    expect(screen.getByLabelText("A 55%, B 45%")).toBeInTheDocument();
+    expect(screen.getByText("증거 1")).toBeInTheDocument();
     expect(screen.getByText("이긴 사람 보상 추천")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "결제 없이 판례 판독 미리보기" }),
