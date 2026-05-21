@@ -283,6 +283,7 @@ describe("ResultScreen", () => {
     expect(
       screen.queryByRole("button", { name: "판정 공유하기" }),
     ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "카톡 보내기" })).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", {
         name: /억울하면 유사 판례로 한 번 더 따져보기/,
@@ -320,9 +321,12 @@ describe("ResultScreen", () => {
     await user.click(screen.getByRole("button", { name: "등록" }));
     expect(screen.getByText("이건 인정")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "판정 공유하기" }));
+    expect(screen.getByRole("button", { name: "카톡 보내기" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "텔레그램 보내기" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "링크 보내기" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "링크 보내기" }));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining(result.verdict));
-    expect(screen.getByText("판독 결과를 공유할 수 있게 준비했어요.")).toBeInTheDocument();
+    expect(screen.getByText("공유 링크를 복사했어요.")).toBeInTheDocument();
   });
 
   it("blocks public comments that cross the line", async () => {
@@ -409,11 +413,9 @@ describe("ResultScreen", () => {
       "서버 댓글",
     );
 
-    await user.click(screen.getByRole("button", { name: "판정 공유하기" }));
+    await user.click(screen.getByRole("button", { name: "링크 보내기" }));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining("result=shared-1"));
-    expect(
-      screen.getByText("공유 가능한 판독 결과 링크를 준비했어요."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("공유 링크를 복사했어요.")).toBeInTheDocument();
   });
 
   it("does not show the objection precedent confirmation before CTA is opened", () => {

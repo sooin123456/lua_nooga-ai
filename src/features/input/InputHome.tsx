@@ -1,4 +1,5 @@
-import { Flame, History, Home, MessageCirclePlus } from "lucide-react";
+import { openURL } from "@apps-in-toss/web-framework";
+import { Flame, Gift, History, Home, MessageCirclePlus } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { EvidenceMethodCard } from "./EvidenceMethodCard";
@@ -90,6 +91,17 @@ const fallbackLeaderboardItems: LeaderboardItem[] = [
 ];
 
 const leaderboardIcons = ["🥇", "🥈", "🥉"];
+const reconciliationProducts = [
+  "편의점 커피 쿠폰",
+  "달달한 마카롱 세트",
+  "미니 꽃다발",
+  "귀여운 키링",
+  "치킨 쿠폰",
+] as const;
+
+function createShoppingSearchUrl(query: string) {
+  return `https://service.toss.im/shopping-discovery/search?keyword=${encodeURIComponent(query)}`;
+}
 
 function HomeTabBar({
   activeTab,
@@ -158,7 +170,6 @@ export function InputHome({
   onCreateRoom,
   onSelect,
 }: InputHomeProps) {
-  const [isHotBattleOpen, setIsHotBattleOpen] = useState(false);
   const [selectedBattleId, setSelectedBattleId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<HomeTab>("home");
   const [commentDraft, setCommentDraft] = useState("");
@@ -182,6 +193,7 @@ export function InputHome({
       ),
   );
   const [latestComments, setLatestComments] = useState<Record<string, string>>({});
+  const [randomRewardLabel, setRandomRewardLabel] = useState(reconciliationProducts[0]);
 
   useEffect(() => {
     if (!configuredResultShareService) {
@@ -251,35 +263,63 @@ export function InputHome({
 
   const goHomeTab = () => {
     setSelectedBattleId(null);
-    setIsHotBattleOpen(false);
     setCommentDraft("");
     setActiveTab("home");
   };
 
   const openHotBattleTab = () => {
     setSelectedBattleId(null);
-    setIsHotBattleOpen(true);
     setCommentDraft("");
     setActiveTab("hot");
   };
 
   const openRecentTab = () => {
     setSelectedBattleId(null);
-    setIsHotBattleOpen(false);
     setCommentDraft("");
     setActiveTab("recent");
-
-    window.requestAnimationFrame(() => {
-      document
-        .getElementById("home-recent-card")
-        ?.scrollIntoView?.({ block: "center" });
-    });
   };
 
   const createRoomFromHome = () => {
     setActiveTab("home");
     onCreateRoom();
   };
+
+  const openRandomReward = async () => {
+    const nextProduct =
+      reconciliationProducts[
+        Math.floor(Math.random() * reconciliationProducts.length)
+      ];
+    setRandomRewardLabel(nextProduct);
+    await openURL(createShoppingSearchUrl(nextProduct));
+  };
+
+  if (activeTab === "recent") {
+    return (
+      <main className="screen screen--home">
+        <section className="home-dashboard home-dashboard--page" aria-label="최근 판정">
+          <button className="home-detail-back" type="button" onClick={goHomeTab}>
+            홈으로 돌아가기
+          </button>
+          <div className="home-page-heading">
+            <span>최근</span>
+            <h1>최근 판정 기록</h1>
+            <p>이 기기에서 이어서 볼 판정 기록을 모아둘 공간이에요.</p>
+          </div>
+          <article className="home-recent-empty">
+            <strong>아직 저장된 판정이 없어요</strong>
+            <p>첫 판정을 마치면 결과, 보상 추천, 공유 링크를 여기서 다시 볼 수 있게 연결할 예정이에요.</p>
+          </article>
+        </section>
+        <HomeTabBar
+          activeTab={activeTab}
+          onCreateRoom={createRoomFromHome}
+          onHome={goHomeTab}
+          onHotBattle={openHotBattleTab}
+          onRecent={openRecentTab}
+        />
+      </main>
+    );
+  }
 
   if (selectedBattle) {
     return (
@@ -375,6 +415,79 @@ export function InputHome({
     );
   }
 
+  if (activeTab === "hot") {
+    return (
+      <main className="screen screen--home">
+        <section className="home-dashboard home-dashboard--page" aria-label="핫 Battle 목록">
+          <button className="home-detail-back" type="button" onClick={goHomeTab}>
+            홈으로 돌아가기
+          </button>
+          <div className="home-page-heading">
+            <span>오늘의 핫 Battle 🔥</span>
+            <h1>Top 3</h1>
+            <p>{leaderboardStatus}</p>
+          </div>
+          <section className="home-leaderboard home-leaderboard--page" aria-label="Top 3">
+            {leaderboardItems.slice(0, 3).map((item) => (
+              <article className="home-leaderboard__item" key={item.id}>
+                <span className="home-leaderboard__rank">
+                  <span aria-hidden="true">
+                    {leaderboardIcons[item.rank - 1] ?? "🏅"}
+                  </span>
+                  {item.rank}위
+                </span>
+                <div>
+                  <strong>{item.title}</strong>
+                  <p>
+                    {item.verdict} · 댓글 {commentCounts[item.id] ?? item.comments} · 좋아요{" "}
+                    {item.likes}
+                  </p>
+                  {latestComments[item.id] ? (
+                    <em>최근 댓글: {latestComments[item.id]}</em>
+                  ) : null}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedBattleId(item.id);
+                    setCommentDraft("");
+                    setActiveTab("hot");
+                  }}
+                >
+                  자세히 보기
+                </button>
+              </article>
+            ))}
+          </section>
+          <section className="home-battle-feed" aria-label="올라온 Battle">
+            <h2>올라온 리스트</h2>
+            {leaderboardItems.map((item) => (
+              <button
+                type="button"
+                key={item.id}
+                onClick={() => {
+                  setSelectedBattleId(item.id);
+                  setCommentDraft("");
+                  setActiveTab("hot");
+                }}
+              >
+                <strong>{item.title}</strong>
+                <span>댓글 {commentCounts[item.id] ?? item.comments} · 좋아요 {item.likes}</span>
+              </button>
+            ))}
+          </section>
+        </section>
+        <HomeTabBar
+          activeTab={activeTab}
+          onCreateRoom={createRoomFromHome}
+          onHome={goHomeTab}
+          onHotBattle={openHotBattleTab}
+          onRecent={openRecentTab}
+        />
+      </main>
+    );
+  }
+
   return (
     <main className="screen screen--home">
       <section className="home-dashboard" aria-label="입력 방식 선택">
@@ -398,59 +511,20 @@ export function InputHome({
             <strong>오늘의 핫 Battle 🔥</strong>
             <p>{leaderboardStatus}</p>
           </div>
-          <button
-            type="button"
-            aria-expanded={isHotBattleOpen}
-            onClick={() =>
-              setIsHotBattleOpen((isOpen) => {
-                const nextIsOpen = !isOpen;
-                setActiveTab(nextIsOpen ? "hot" : "home");
-                return nextIsOpen;
-              })
-            }
-          >
-            {isHotBattleOpen ? "닫기" : "랭킹 보기"}
+          <button type="button" onClick={openHotBattleTab}>
+            보러가기
           </button>
         </article>
 
-        {isHotBattleOpen ? (
-          <section className="home-leaderboard" aria-label="오늘의 핫 Battle">
-            <div className="home-leaderboard__header">
-              <strong>Top 3</strong>
-              <span>댓글이 많이 달린 판정만 모았어요.</span>
-            </div>
-            {leaderboardItems.slice(0, 3).map((item) => (
-              <article className="home-leaderboard__item" key={item.id}>
-                <span className="home-leaderboard__rank">
-                  <span aria-hidden="true">
-                    {leaderboardIcons[item.rank - 1] ?? "🏅"}
-                  </span>
-                  {item.rank}위
-                </span>
-                <div>
-                  <strong>{item.title}</strong>
-                  <p>
-                    {item.verdict} · 댓글 {commentCounts[item.id]} · 좋아요{" "}
-                    {item.likes}
-                  </p>
-                  {latestComments[item.id] ? (
-                    <em>최근 댓글: {latestComments[item.id]}</em>
-                  ) : null}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedBattleId(item.id);
-                    setCommentDraft("");
-                    setActiveTab("hot");
-                  }}
-                >
-                  댓글달기
-                </button>
-              </article>
-            ))}
-          </section>
-        ) : null}
+        <button className="home-reward-card" type="button" onClick={() => void openRandomReward()}>
+          <span>
+            <Gift size={20} strokeWidth={2.5} />
+          </span>
+          <div>
+            <strong>루아가 직접 화해의 상품을 추천해요</strong>
+            <p>누르면 랜덤으로 {randomRewardLabel} 같은 보상을 토스 쇼핑에서 찾아요.</p>
+          </div>
+        </button>
 
         <div className="home-quick-actions">
           <button type="button" onClick={createRoomFromHome}>

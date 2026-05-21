@@ -95,7 +95,11 @@ describe("createRewardChatRecommendation", () => {
     });
 
     expect(recommendation.severityLabel).toContain("적정");
-    expect(recommendation.candidates[1].priceHint).toMatch(/1~2만원|1만원|2만원/);
+    expect(recommendation.candidates.map((candidate) => candidate.priceHint)).toEqual([
+      "1~2만원대",
+      "1~2만원대",
+      "1~2만원대",
+    ]);
   });
 
   it("uses a 30,000 won plus range for severe blame", () => {
@@ -106,7 +110,11 @@ describe("createRewardChatRecommendation", () => {
     });
 
     expect(recommendation.severityLabel).toContain("확실한");
-    expect(recommendation.candidates[2].priceHint).toContain("3만원");
+    expect(recommendation.candidates.map((candidate) => candidate.priceHint)).toEqual([
+      "3만원대",
+      "3만원대",
+      "3만원대",
+    ]);
   });
 
   it("scales candidates by the higher blame percentage", () => {
@@ -123,13 +131,13 @@ describe("createRewardChatRecommendation", () => {
     expect(recommendation.candidates).toHaveLength(3);
     expect(recommendation.candidates[0]).toMatchObject({
       tone: "가벼운 사과",
-      priceHint: "5천원대",
-      title: "초콜릿",
+      priceHint: "1~2만원대",
+      title: "고디바 초콜릿 미니박스",
     });
     expect(recommendation.candidates[2]).toMatchObject({
       tone: "확실한 사과",
-      priceHint: "2만원대",
-      title: "케이크",
+      priceHint: "1~2만원대",
+      title: "투썸 조각 케이크 교환권",
     });
   });
 
@@ -150,42 +158,42 @@ describe("createRewardChatRecommendation", () => {
       59,
       "light",
       "가벼운 사과로 충분한 판정",
-      ["5천원대", "5천원대", "1만원 이하"],
+      ["5천원대", "5천원대", "5천원대"],
       "가볍게 웃으면서 풀 수 있는",
     ],
     [
       60,
       "fair",
       "적정 보상이 어울리는 판정",
-      ["5천원대", "1~2만원대", "2만원대"],
+      ["1~2만원대", "1~2만원대", "1~2만원대"],
       "분위기 풀기엔",
     ],
     [
       79,
       "fair",
       "적정 보상이 어울리는 판정",
-      ["5천원대", "1~2만원대", "2만원대"],
+      ["1~2만원대", "1~2만원대", "1~2만원대"],
       "분위기 풀기엔",
     ],
     [
       80,
       "serious",
       "확실한 사과가 필요한 판정",
-      ["1~2만원대", "3만원대", "3만원 이상"],
+      ["3만원대", "3만원대", "3만원대"],
       "확실한 사과가 필요해요",
     ],
     [
       89,
       "serious",
       "확실한 사과가 필요한 판정",
-      ["1~2만원대", "3만원대", "3만원 이상"],
+      ["3만원대", "3만원대", "3만원대"],
       "확실한 사과가 필요해요",
     ],
     [
       90,
       "serious",
       "확실한 사과가 필요한 판정",
-      ["1~2만원대", "3만원대", "3만원 이상"],
+      ["3만원대", "3만원대", "3만원대"],
       "확실한 사과가 필요해요",
     ],
   ] as const)(

@@ -33,16 +33,12 @@ export function AnimatedPercentBar({
         aria-label="판례를 두드리는 망치 판정 이펙트"
         role="img"
       >
-        <span className="animated-percent-bar__case-card animated-percent-bar__case-card--a">
-          판례
-        </span>
+        <span className="animated-percent-bar__spark animated-percent-bar__spark--a" />
         <span className="animated-percent-bar__gavel">
           <span />
         </span>
         <span className="animated-percent-bar__impact" />
-        <span className="animated-percent-bar__case-card animated-percent-bar__case-card--b">
-          판결
-        </span>
+        <span className="animated-percent-bar__spark animated-percent-bar__spark--b" />
       </div>
     </div>
   );

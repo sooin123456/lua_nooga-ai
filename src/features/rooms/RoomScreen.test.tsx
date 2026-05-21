@@ -71,7 +71,7 @@ describe("RoomScreen", () => {
     expect(onJoinRoom).toHaveBeenCalledWith({ nickname: "수인" });
     expect(screen.getByText(/A와 B가 모두 입장하면/)).toBeInTheDocument();
     expect(screen.getByText("대기")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "지금 판정하기" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "지금 판정하기" })).not.toBeInTheDocument();
   });
 
   it("lets participants add messages before the room explodes", async () => {
@@ -289,7 +289,7 @@ describe("RoomScreen", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "초대 링크 복사" }));
+    await user.click(screen.getByRole("button", { name: "초대 링크 보내기" }));
 
     expect(onCopyInvite).toHaveBeenCalledOnce();
     expect(

@@ -63,9 +63,10 @@ describe("TextReview", () => {
       screen.getByRole("button", { name: "무료 판독 받기" }),
     ).toBeInTheDocument();
     expect(screen.getByText("증거 확인")).toBeInTheDocument();
-    expect(screen.getByText("1 증거")).toBeInTheDocument();
-    expect(screen.getByText("2 확인")).toBeInTheDocument();
-    expect(screen.getByText("3 판독")).toBeInTheDocument();
+    expect(screen.getByText("지금은 증거를 확인하는 단계예요")).toBeInTheDocument();
+    expect(
+      screen.getByText("내용을 고치고 무료 판독을 누르면 루아가 바로 분석을 시작해요."),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("붙여넣은 내용만 확인하면 바로 판독으로 넘어가요."),
     ).toBeInTheDocument();

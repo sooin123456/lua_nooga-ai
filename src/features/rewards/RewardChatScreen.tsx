@@ -163,7 +163,10 @@ export function RewardChatScreen({ result, onBack, onHome }: RewardChatScreenPro
       {recommendation ? (
         <section className="reward-chat-result" aria-label="루아 추천 결과">
           <div className="reward-composer-heading">
-            <strong>잘못 정도별 토스 상품 추천</strong>
+            <div>
+              <strong>잘못 정도별 토스 상품 추천</strong>
+              <span>{recommendation.severityLabel} · 같은 가격대에서 골랐어요.</span>
+            </div>
             <button type="button" onClick={() => setRecommendation(null)}>
               닫기
             </button>
@@ -183,6 +186,7 @@ export function RewardChatScreen({ result, onBack, onHome }: RewardChatScreenPro
                   <span className="reward-candidate-card__tone">{candidate.tone}</span>
                   <strong>{candidate.title}</strong>
                   <em>{candidate.priceHint}</em>
+                  <small>{candidate.message}</small>
                 </label>
               </li>
             ))}
@@ -205,12 +209,14 @@ export function RewardChatScreen({ result, onBack, onHome }: RewardChatScreenPro
         </p>
       ) : null}
 
-      <Button className="reward-back-button" type="button" onClick={onBack}>
-        판정 결과로 돌아가기
-      </Button>
-      <Button className="reward-home-button" type="button" onClick={onHome}>
-        홈으로 돌아가기
-      </Button>
+      <div className="reward-navigation-actions">
+        <Button className="reward-back-button" type="button" onClick={onBack}>
+          판정 결과로 돌아가기
+        </Button>
+        <Button className="reward-home-button" type="button" onClick={onHome}>
+          홈으로 돌아가기
+        </Button>
+      </div>
     </main>
   );
 }

@@ -47,6 +47,8 @@ export function RoomScreen({
   const canChat = Boolean(currentParticipant && !isSpectator && !isRoomClosed);
   const canExplode = Boolean(canChat && isCountdownStarted && messages.length > 0 && !isExploding);
   const isCountdownHot = isCountdownStarted && !isRoomClosed && remainingSeconds > 0 && remainingSeconds <= 5;
+  const hasJoined = Boolean(currentParticipant);
+  const isInviteStep = Boolean(room && currentParticipant && !isCountdownStarted);
 
   const submitNickname = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -114,14 +116,6 @@ export function RoomScreen({
           </span>
         </article>
 
-        {inviteUrl ? (
-          <button className="room-invite-button" type="button" onClick={onCopyInvite}>
-            초대 링크 복사
-          </button>
-        ) : null}
-
-        {inviteStatus ? <p className="room-status">{inviteStatus}</p> : null}
-
         {errorMessage ? <p className="room-error">{errorMessage}</p> : null}
         {isLoading ? <p className="room-status">판정방을 여는 중이에요.</p> : null}
         {isSpectator ? (
@@ -155,68 +149,83 @@ export function RoomScreen({
           </form>
         ) : null}
 
-        <div className="room-participants" aria-label="참여자">
-          <strong>입장 현황</strong>
-          <p>{participantSummary}</p>
-        </div>
+        {isInviteStep ? (
+          <section className="room-invite-step" aria-label="초대 링크 보내기">
+            <strong>초대 링크를 보내고 기다려요</strong>
+            <p>상대가 입장하면 입장 현황과 채팅 화면이 열리고 60초 카운트가 시작돼요.</p>
+            {inviteUrl ? (
+              <button className="room-invite-button" type="button" onClick={onCopyInvite}>
+                초대 링크 보내기
+              </button>
+            ) : null}
+            {inviteStatus ? <p className="room-status">{inviteStatus}</p> : null}
+          </section>
+        ) : null}
 
-        <div className="room-messages" aria-live="polite">
-          {messages.length === 0 ? (
-            <p className="room-empty">
-              {isCountdownStarted
-                ? "A와 B가 각자 할 말을 남겨주세요."
-                : "아직 카운트다운 전이에요. 상대를 기다리는 중입니다."}
-            </p>
-          ) : (
-            messages.map((message) => (
-              <article
-                className={`room-message room-message--${
-                  currentParticipant?.role === message.author ? "mine" : "other"
-                }`}
-                key={message.id}
-              >
-                <span>
-                  {message.nickname} · {message.author}
-                </span>
-                <p>{message.body}</p>
-              </article>
-            ))
-          )}
-        </div>
+        {hasJoined && !isInviteStep ? (
+          <>
+            <div className="room-participants" aria-label="참여자">
+              <strong>입장 현황</strong>
+              <p>{participantSummary}</p>
+            </div>
 
-        <form className="room-composer" onSubmit={submitMessage}>
-          <label className="sr-only" htmlFor="room-message">
-            판정방 메시지
-          </label>
-          <input
-            id="room-message"
-            value={body}
-            disabled={!canChat}
-            placeholder={
-              !currentParticipant
-                ? "닉네임 입력 후 채팅할 수 있어요"
-                : isSpectator
-                  ? "관전자는 읽기만 가능해요"
-                  : isRoomClosed
-                    ? "대화가 폭발했어요"
-                    : "할 말을 입력하세요"
-            }
-            onChange={(event) => setBody(event.currentTarget.value)}
-          />
-          <button type="submit" disabled={!canChat || body.trim().length === 0}>
-            <Send size={16} />
-            보내기
-          </button>
-        </form>
+            <div className="room-messages" aria-live="polite">
+              {messages.length === 0 ? (
+                <p className="room-empty">
+                  {isCountdownStarted
+                    ? "A와 B가 각자 할 말을 남겨주세요."
+                    : "아직 카운트다운 전이에요. 상대를 기다리는 중입니다."}
+                </p>
+              ) : (
+                messages.map((message) => (
+                  <article
+                    className={`room-message room-message--${
+                      currentParticipant?.role === message.author ? "mine" : "other"
+                    }`}
+                    key={message.id}
+                  >
+                    <span>
+                      {message.nickname} · {message.author}
+                    </span>
+                    <p>{message.body}</p>
+                  </article>
+                ))
+              )}
+            </div>
 
-        <button
-          className="room-explode-button"
-          type="button"
-          disabled={!canExplode}
-          onClick={onExplodeNow}
-        >
-          지금 판정하기
-        </button>
+            <form className="room-composer" onSubmit={submitMessage}>
+              <label className="sr-only" htmlFor="room-message">
+                판정방 메시지
+              </label>
+              <input
+                id="room-message"
+                value={body}
+                disabled={!canChat}
+                placeholder={
+                  isSpectator
+                    ? "관전자는 읽기만 가능해요"
+                    : isRoomClosed
+                      ? "대화가 폭발했어요"
+                      : "할 말을 입력하세요"
+                }
+                onChange={(event) => setBody(event.currentTarget.value)}
+              />
+              <button type="submit" disabled={!canChat || body.trim().length === 0}>
+                <Send size={16} />
+                보내기
+              </button>
+            </form>
+
+            <button
+              className="room-explode-button"
+              type="button"
+              disabled={!canExplode}
+              onClick={onExplodeNow}
+            >
+              지금 판정하기
+            </button>
+          </>
+        ) : null}
       </section>
     </main>
   );

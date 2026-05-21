@@ -15,16 +15,14 @@ describe("InputHome", () => {
 
     expect(screen.getByText("루아 AI")).toBeInTheDocument();
     expect(screen.getByText("오늘의 핫 Battle 🔥")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "랭킹 보기" })).toHaveAttribute(
-      "aria-expanded",
-      "false",
-    );
+    expect(screen.getByRole("button", { name: "보러가기" })).toBeInTheDocument();
     expect(
       screen.queryByText("연락 늦게 봤다 vs 말투가 셌다"),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("둘이 같이 판정받기")).not.toBeInTheDocument();
     expect(screen.queryByText("60초 안에 각자 말하고 결과만 남겨요.")).not.toBeInTheDocument();
     expect(screen.getByText("최근 판정")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /루아가 직접 화해의 상품을 추천해요/ })).toBeInTheDocument();
     expect(screen.queryByText("억울하면 판례로 다시 따지기")).not.toBeInTheDocument();
     expect(screen.getByText(/현재 무료 판독은 입력 내용을/)).toBeInTheDocument();
     expect(screen.getByText(/재미용 판독이며/)).toBeInTheDocument();
@@ -57,7 +55,7 @@ describe("InputHome", () => {
     ).toBeInTheDocument();
   });
 
-  it("opens hot battle ranking through a toggle", async () => {
+  it("opens hot battle ranking as a separate page", async () => {
     const user = userEvent.setup();
 
     render(
@@ -68,19 +66,17 @@ describe("InputHome", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "랭킹 보기" }));
+    await user.click(screen.getByRole("button", { name: "보러가기" }));
 
-    expect(screen.getByRole("button", { name: "닫기" })).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
+    expect(screen.getByRole("heading", { name: "Top 3" })).toBeInTheDocument();
+    expect(screen.getByText("올라온 리스트")).toBeInTheDocument();
     expect(screen.getByText("1위")).toBeInTheDocument();
     expect(screen.getByText("2위")).toBeInTheDocument();
     expect(screen.getByText("3위")).toBeInTheDocument();
     expect(screen.getByText("🥇")).toBeInTheDocument();
     expect(screen.getByText("🥈")).toBeInTheDocument();
     expect(screen.getByText("🥉")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "댓글달기" })).toHaveLength(3);
+    expect(screen.getAllByRole("button", { name: "자세히 보기" })).toHaveLength(3);
   });
 
   it("shows a floating bottom tabbar for the home dashboard", () => {
@@ -122,7 +118,8 @@ describe("InputHome", () => {
       "page",
     );
     expect(screen.getByText("1위")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "댓글달기" })).toHaveLength(3);
+    expect(screen.getByRole("heading", { name: "Top 3" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "자세히 보기" })).toHaveLength(3);
   });
 
   it("starts the judgment room from the bottom tabbar", async () => {
@@ -154,7 +151,7 @@ describe("InputHome", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "핫 Battle" }));
-    await user.click(screen.getAllByRole("button", { name: "댓글달기" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "자세히 보기" })[0]);
     await user.click(screen.getByRole("button", { name: "홈" }));
 
     expect(screen.getByText("오늘의 핫 Battle 🔥")).toBeInTheDocument();
@@ -176,8 +173,8 @@ describe("InputHome", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "랭킹 보기" }));
-    await user.click(screen.getAllByRole("button", { name: "댓글달기" })[1]);
+    await user.click(screen.getByRole("button", { name: "보러가기" }));
+    await user.click(screen.getAllByRole("button", { name: "자세히 보기" })[1]);
 
     expect(screen.getByRole("heading", { name: "루아 판정" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "대화 내용" })).toBeInTheDocument();
@@ -210,7 +207,7 @@ describe("InputHome", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "핫 Battle" }));
-    await user.click(screen.getAllByRole("button", { name: "댓글달기" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "자세히 보기" })[0]);
 
     const summaryTitle = screen.getByRole("heading", {
       name: "연락 늦게 봤다 vs 말투가 셌다",
@@ -360,11 +357,28 @@ describe("InputHome", () => {
     );
 
     expect(await screen.findByText("실시간 공유 결과 기준으로 집계했어요.")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "랭킹 보기" }));
+    await userEvent.click(screen.getByRole("button", { name: "보러가기" }));
 
-    expect(screen.getByText("B가 73% 선넘었어요")).toBeInTheDocument();
-    expect(screen.getByText(/댓글 4/)).toBeInTheDocument();
-    expect(screen.getByText(/좋아요 9/)).toBeInTheDocument();
+    expect(screen.getAllByText("B가 73% 선넘었어요").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/댓글 4/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/좋아요 9/).length).toBeGreaterThan(0);
     expect(screen.queryByText("A가 51% 선넘었어요")).not.toBeInTheDocument();
+  });
+
+  it("opens a real recent page from the bottom tabbar", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <InputHome
+        resultShareService={null}
+        onCreateRoom={vi.fn()}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "최근" }));
+
+    expect(screen.getByRole("heading", { name: "최근 판정 기록" })).toBeInTheDocument();
+    expect(screen.getByText("아직 저장된 판정이 없어요")).toBeInTheDocument();
   });
 });

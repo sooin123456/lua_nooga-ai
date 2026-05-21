@@ -41,43 +41,49 @@ export type RewardChatRecommendation = RewardRecommendation & {
 type RewardTier = {
   severity: RewardSeverity;
   severityLabel: string;
-  prices: readonly [string, string, string];
+  priceBand: string;
 };
 
 const rewardRules: Array<{
   category: RewardCategory;
   keywords: string[];
   searchTerms: readonly [string, string, string];
+  products: readonly [string, string, string];
   reason: string;
 }> = [
   {
     category: "커피/음료",
     keywords: ["커피", "아메리카노", "라떼", "음료", "카페", "버블티"],
     searchTerms: ["커피", "카페 쿠폰", "음료 교환권"],
+    products: ["스타벅스 아메리카노 e쿠폰", "메가커피 달달 라떼 쿠폰", "투썸 음료 교환권"],
     reason: "가볍게 사과하고 바로 건네기 좋은 보상이에요.",
   },
   {
     category: "디저트/간식",
     keywords: ["달달", "디저트", "간식", "초콜릿", "케이크", "마카롱", "젤리"],
     searchTerms: ["초콜릿", "마카롱", "케이크"],
+    products: ["고디바 초콜릿 미니박스", "수제 마카롱 6구 세트", "투썸 조각 케이크 교환권"],
     reason: "분위기를 부드럽게 풀기 좋은 달콤한 보상이에요.",
   },
   {
     category: "꽃/감정 회복",
     keywords: ["꽃", "사과 카드", "사과 선물", "화해", "미안", "기분", "감정", "편지"],
     searchTerms: ["꽃다발", "미니 꽃", "사과 카드"],
+    products: ["프리지아 미니 꽃다발", "화해 카드 세트", "드라이플라워 선물 박스"],
     reason: "말로 부족한 사과를 모양으로 보여주기 좋아요.",
   },
   {
     category: "캐릭터 굿즈",
     keywords: ["귀여운", "캐릭터", "인형", "키링", "굿즈"],
     searchTerms: ["캐릭터 키링", "미니 인형", "스티커"],
+    products: ["캐릭터 키링 랜덤박스", "말랑 미니 인형", "귀여운 스티커팩"],
     reason: "무겁지 않게 웃으면서 넘기기 좋은 보상이에요.",
   },
   {
     category: "식사권",
     keywords: ["밥", "식사", "저녁", "점심", "치킨", "피자", "고기"],
     searchTerms: ["식사권", "치킨 쿠폰", "피자 쿠폰"],
+    products: ["배달 식사권", "BBQ 치킨 쿠폰", "피자 세트 교환권"],
     reason: "제대로 앉아서 다시 이야기할 명분을 만들어줘요.",
   },
 ];
@@ -85,6 +91,7 @@ const rewardRules: Array<{
 const fallback = {
   category: "생활 소품" as const,
   searchTerms: ["미니 캔들 선물세트", "귀여운 편지지 세트", "작은 디퓨저"] as const,
+  products: ["미니 캔들 선물세트", "귀여운 편지지 세트", "작은 디퓨저"],
   reason: "작은 선물 안에서도 잘못 정도에 맞춰 부담 없는 상품을 고를 수 있어요.",
 };
 
@@ -142,7 +149,7 @@ function getRewardTier(blamePercent: number): RewardTier {
     return {
       severity: "serious",
       severityLabel: "확실한 사과가 필요한 판정",
-      prices: ["1~2만원대", "3만원대", "3만원 이상"],
+      priceBand: "3만원대",
     };
   }
 
@@ -150,14 +157,14 @@ function getRewardTier(blamePercent: number): RewardTier {
     return {
       severity: "fair",
       severityLabel: "적정 보상이 어울리는 판정",
-      prices: ["5천원대", "1~2만원대", "2만원대"],
+      priceBand: "1~2만원대",
     };
   }
 
   return {
     severity: "light",
     severityLabel: "가벼운 사과로 충분한 판정",
-    prices: ["5천원대", "5천원대", "1만원 이하"],
+    priceBand: "5천원대",
   };
 }
 
@@ -204,30 +211,33 @@ export function createRewardChatRecommendation({
   const blamedParty = partyAPercent >= partyBPercent ? "A" : "B";
   const blamePercent = Math.max(partyAPercent, partyBPercent);
   const rewardTier = getRewardTier(blamePercent);
+  const selectedRule =
+    rewardRules.find((rule) => rule.category === recommendation.category) ?? fallback;
   const [firstTerm, secondTerm, thirdTerm] = recommendation.searchTerms;
+  const [firstProduct, secondProduct, thirdProduct] = selectedRule.products;
   const candidates = [
     {
       tone: "가벼운 사과" as const,
-      title: firstTerm,
+      title: firstProduct,
       query: firstTerm,
       shoppingUrl: createShoppingSearchUrl(firstTerm),
-      priceHint: rewardTier.prices[0],
+      priceHint: rewardTier.priceBand,
       message: "가볍게 풀 수 있는 정도의 토스 상품이에요.",
     },
     {
       tone: "적정 보상" as const,
-      title: secondTerm,
+      title: secondProduct,
       query: secondTerm,
       shoppingUrl: createShoppingSearchUrl(secondTerm),
-      priceHint: rewardTier.prices[1],
+      priceHint: rewardTier.priceBand,
       message: "잘못 정도와 부담감을 맞춘 중간 보상이에요.",
     },
     {
       tone: "확실한 사과" as const,
-      title: thirdTerm,
+      title: thirdProduct,
       query: thirdTerm,
       shoppingUrl: createShoppingSearchUrl(thirdTerm),
-      priceHint: rewardTier.prices[2],
+      priceHint: rewardTier.priceBand,
       message: "상대가 아직 서운할 때 확실히 마음을 보여주는 상품이에요.",
     },
   ] as const;

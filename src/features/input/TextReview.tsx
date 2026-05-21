@@ -105,11 +105,10 @@ export function TextReview({
         <span>붙여넣은 내용만 확인하면 바로 판독으로 넘어가요.</span>
       </header>
 
-      <ol className="review-steps" aria-label="판독 단계">
-        <li className="is-active">1 증거</li>
-        <li>2 확인</li>
-        <li>3 판독</li>
-      </ol>
+      <div className="review-progress-note" aria-label="루아 판독 진행 안내">
+        <strong>지금은 증거를 확인하는 단계예요</strong>
+        <span>내용을 고치고 무료 판독을 누르면 루아가 바로 분석을 시작해요.</span>
+      </div>
 
       <section className="text-review" aria-label="대화 내용 확인">
         <div className="text-review__header">

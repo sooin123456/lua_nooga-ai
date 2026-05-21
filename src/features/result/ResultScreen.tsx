@@ -1,4 +1,5 @@
 import { Button, Top } from "@toss/tds-mobile";
+import { openURL } from "@apps-in-toss/web-framework";
 import { useEffect, useMemo, useState } from "react";
 import type { JudgmentResult } from "../analyzer/types";
 import { createSharedResultUrl } from "../resultShare/resultLinks";
@@ -180,7 +181,16 @@ export function ResultScreen({
     }
   };
 
-  const handleShare = async () => {
+  const createShareText = (shareUrl: string | null) =>
+    [
+      "누가 잘못 AI 판독 결과",
+      result.verdict,
+      `A ${result.partyAPercent}% · B ${result.partyBPercent}%`,
+      result.advice,
+      shareUrl,
+    ].filter(Boolean).join("\n");
+
+  const createShareUrl = async () => {
     let shareUrl: string | null = null;
 
     try {
@@ -193,17 +203,18 @@ export function ResultScreen({
       }
     } catch {
       setShareMessage("공유 링크를 만들지 못했어요. 다시 시도해 주세요.");
-      return;
+      return null;
     }
 
-    const shareText = [
-      "누가 잘못 AI 판독 결과",
-      result.verdict,
-      `A ${result.partyAPercent}% · B ${result.partyBPercent}%`,
-      result.advice,
-      shareUrl,
-    ].filter(Boolean).join("\n");
+    return shareUrl;
+  };
 
+  const handleShare = async () => {
+    const shareUrl = await createShareUrl();
+    if (shareUrl === null && configuredResultShareService) {
+      return;
+    }
+    const shareText = createShareText(shareUrl);
     try {
       if (navigator.share) {
         await navigator.share({
@@ -218,6 +229,35 @@ export function ResultScreen({
         shareUrl
           ? "공유 가능한 판독 결과 링크를 준비했어요."
           : "판독 결과를 공유할 수 있게 준비했어요.",
+      );
+    } catch {
+      setShareMessage("공유를 완료하지 못했어요. 다시 시도해 주세요.");
+    }
+  };
+
+  const handleChannelShare = async (channel: "kakao" | "telegram" | "link") => {
+    const shareUrl = await createShareUrl();
+    if (shareUrl === null && configuredResultShareService) {
+      return;
+    }
+    const shareText = createShareText(shareUrl);
+
+    try {
+      if (channel === "telegram") {
+        await openURL(
+          `https://t.me/share/url?url=${encodeURIComponent(
+            shareUrl ?? window.location.href,
+          )}&text=${encodeURIComponent(shareText)}`,
+        );
+        setShareMessage("텔레그램으로 보낼 링크를 열었어요.");
+        return;
+      }
+
+      await navigator.clipboard.writeText(shareText);
+      setShareMessage(
+        channel === "kakao"
+          ? "카톡에 붙여넣을 판정 링크를 복사했어요."
+          : "공유 링크를 복사했어요.",
       );
     } catch {
       setShareMessage("공유를 완료하지 못했어요. 다시 시도해 주세요.");
@@ -399,13 +439,24 @@ export function ResultScreen({
               아직 댓글이 없어요. 판독 결과에 한마디를 남겨보세요.
             </p>
           ) : null}
+          <div className="result-share-actions" aria-label="판정 공유 방법">
+            <button type="button" disabled={isReactionPending} onClick={() => void handleChannelShare("kakao")}>
+              카톡 보내기
+            </button>
+            <button type="button" disabled={isReactionPending} onClick={() => void handleChannelShare("telegram")}>
+              텔레그램 보내기
+            </button>
+            <button type="button" disabled={isReactionPending} onClick={() => void handleChannelShare("link")}>
+              링크 보내기
+            </button>
+          </div>
           <button
             className="result-share-button"
             type="button"
             disabled={isReactionPending}
             onClick={handleShare}
           >
-            판정 공유하기
+            기본 공유 열기
           </button>
           {shareMessage ? <p className="result-share-status">{shareMessage}</p> : null}
         </section>
