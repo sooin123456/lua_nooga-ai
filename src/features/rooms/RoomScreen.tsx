@@ -41,6 +41,7 @@ export function RoomScreen({
   const [body, setBody] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const isCountdownStarted = Boolean(room?.startedAt);
+  const isCountdownHot = isCountdownStarted && remainingSeconds <= 5;
   const isSpectator = currentParticipant?.role === "spectator";
   const isRoomClosed =
     !room || room.status === "exploded" || (isCountdownStarted && remainingSeconds === 0);
@@ -96,7 +97,7 @@ export function RoomScreen({
                 : "A와 B가 모두 입장하면 60초 카운트가 시작돼요."}
             </p>
           </div>
-          <div className={`room-timer${remainingSeconds <= 5 ? " room-timer--hot" : ""}`}>
+          <div className={`room-timer${isCountdownHot ? " room-timer--hot" : ""}`}>
             {isCountdownStarted ? `${remainingSeconds}s` : "대기"}
           </div>
         </header>
@@ -122,6 +123,14 @@ export function RoomScreen({
 
         {errorMessage ? <p className="room-error">{errorMessage}</p> : null}
         {isLoading ? <p className="room-status">판정방을 여는 중이에요.</p> : null}
+        {isSpectator ? (
+          <p className="room-spectator-note">
+            관전 중이에요. 결과가 나온 뒤 댓글로 참여할 수 있어요.
+          </p>
+        ) : null}
+        {isCountdownHot ? (
+          <p className="room-countdown-warning">루아가 망치를 들었어요.</p>
+        ) : null}
 
         {room && !currentParticipant ? (
           <form className="room-join-card" onSubmit={submitNickname}>

@@ -58,6 +58,7 @@ describe("RoomScreen", () => {
     await user.click(screen.getByRole("button", { name: "입장하기" }));
 
     expect(onJoinRoom).toHaveBeenCalledWith({ nickname: "수인" });
+    expect(screen.getByText(/A와 B가 모두 입장하면/)).toBeInTheDocument();
     expect(screen.getByText("대기")).toBeInTheDocument();
   });
 
@@ -90,7 +91,9 @@ describe("RoomScreen", () => {
     });
   });
 
-  it("lets spectators watch without sending messages", () => {
+  it("lets spectators watch without sending messages", async () => {
+    const user = userEvent.setup();
+    const onSendMessage = vi.fn();
     const spectator: RoomParticipant = {
       id: "p3",
       roomId: "room-1",
@@ -113,13 +116,39 @@ describe("RoomScreen", () => {
         onBack={vi.fn()}
         onExplodeNow={vi.fn()}
         onJoinRoom={vi.fn()}
-        onSendMessage={vi.fn()}
+        onSendMessage={onSendMessage}
       />,
     );
 
     expect(screen.getByLabelText("판정방 메시지")).toBeDisabled();
+    expect(screen.getByText(/관전 중이에요/)).toBeInTheDocument();
     expect(screen.getByPlaceholderText("관전자는 읽기만 가능해요")).toBeInTheDocument();
     expect(screen.getByText(/관전 구경꾼/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "보내기" }));
+
+    expect(onSendMessage).not.toHaveBeenCalled();
+  });
+
+  it("warns when the countdown is almost over", () => {
+    render(
+      <RoomScreen
+        currentParticipant={participantA}
+        errorMessage={null}
+        isExploding={false}
+        isLoading={false}
+        messages={[]}
+        participants={[participantA, participantB]}
+        remainingSeconds={5}
+        room={room}
+        onBack={vi.fn()}
+        onExplodeNow={vi.fn()}
+        onJoinRoom={vi.fn()}
+        onSendMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("루아가 망치를 들었어요.")).toBeInTheDocument();
   });
 
   it("shows the explosion state when the countdown reaches zero", () => {

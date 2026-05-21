@@ -2317,7 +2317,9 @@
 
 .room-notice,
 .room-error,
-.room-status {
+.room-status,
+.room-spectator-note,
+.room-countdown-warning {
   display: flex;
   gap: 8px;
   align-items: center;
@@ -2343,6 +2345,16 @@
 .room-status {
   background: #eef6ff;
   color: #1b64da;
+}
+
+.room-spectator-note {
+  background: #f2f4f6;
+  color: #4e5968;
+}
+
+.room-countdown-warning {
+  background: #fff0f1;
+  color: #d22030;
 }
 
 .room-invite-button {
