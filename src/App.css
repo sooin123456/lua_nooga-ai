@@ -1364,100 +1364,50 @@
 }
 
 .reward-candidate-list {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
+  display: grid;
+  gap: 10px;
   padding: 0;
   margin: 0;
   list-style: none;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
 }
 
 .reward-candidate-card {
-  flex: 0 0 126px;
-  scroll-snap-align: start;
+  min-width: 0;
 }
 
 .reward-candidate-card label {
   position: relative;
   display: grid;
-  gap: 6px;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 10px;
+  align-items: start;
+  min-height: 94px;
+  padding: 14px;
+  border: 1px solid #e5e8eb;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(25, 31, 40, 0.06);
   cursor: pointer;
 }
 
 .reward-candidate-card input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
+  grid-row: 1 / span 4;
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: #191f28;
 }
 
-.reward-candidate-card__check {
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #8b95a1;
-}
-
-.reward-candidate-card input:checked + .reward-candidate-card__check {
-  background: #191f28;
-}
-
-.reward-candidate-card__check::after {
-  width: 8px;
-  height: 4px;
-  border-bottom: 2px solid #ffffff;
-  border-left: 2px solid #ffffff;
-  content: "";
-  transform: translateY(-1px) rotate(-45deg);
-}
-
-.reward-candidate-card__thumb {
-  display: grid;
-  place-items: end start;
-  height: 86px;
-  padding: 9px;
-  border: 1px solid #e5e8eb;
-  border-radius: 8px;
-  color: #191f28;
-  font-size: 26px;
-  font-weight: 1000;
-  line-height: 1;
-  box-sizing: border-box;
-  box-shadow: 0 6px 14px rgba(25, 31, 40, 0.08);
-}
-
-.reward-candidate-card__thumb--1 {
-  background:
-    linear-gradient(135deg, rgba(255, 230, 0, 0.92), rgba(255, 189, 35, 0.95)),
-    #ffd83d;
-}
-
-.reward-candidate-card__thumb--2 {
-  background:
-    linear-gradient(135deg, #fff036, #ff9f1c 54%, #ff4d6d),
-    #ffc400;
-}
-
-.reward-candidate-card__thumb--3 {
-  background:
-    linear-gradient(135deg, #191f28, #ff6b00 62%, #f04452),
-    #191f28;
-  color: #ffffff;
+.reward-candidate-card input:focus-visible {
+  outline: 3px solid #d4e8ff;
+  outline-offset: 2px;
 }
 
 .reward-candidate-card__tone,
 .reward-candidate-card__source,
 .reward-candidate-card em {
   color: #6b7684;
-  font-size: 11px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 900;
   line-height: 1.25;
@@ -1465,16 +1415,16 @@
 
 .reward-candidate-card__source {
   width: fit-content;
-  padding: 3px 6px;
+  padding: 4px 7px;
   border-radius: 999px;
   background: #eef0ff;
   color: #2f3ee5;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .reward-candidate-card strong {
   color: #191f28;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 1000;
   line-height: 1.3;
   overflow-wrap: anywhere;

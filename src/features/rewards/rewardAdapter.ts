@@ -147,30 +147,25 @@ export function getRewardSeverity(blamePercent: number): RewardSeverity {
   return "light";
 }
 
-function getSeverityLabel(severity: RewardSeverity) {
-  switch (severity) {
-    case "legend":
-      return "제대로 사과 패키지";
-    case "serious":
-      return "기분 회복 선물급";
-    case "fair":
-      return "커피/디저트급";
-    case "light":
-      return "가벼운 사과템";
+function getRewardPriceBand(blamePercent: number) {
+  if (blamePercent >= 80) {
+    return {
+      severityLabel: "확실한 사과가 필요한 판정",
+      prices: ["1~2만원대", "3만원대", "3만원 이상"],
+    };
   }
-}
 
-function getPriceHints(severity: RewardSeverity): readonly [string, string, string] {
-  switch (severity) {
-    case "legend":
-      return ["1만원대", "2만원대", "3만원 이상"];
-    case "serious":
-      return ["7천원대", "1만원대", "2만원대"];
-    case "fair":
-      return ["5천원대", "8천원대", "1만원대"];
-    case "light":
-      return ["3천원대", "5천원대", "7천원대"];
+  if (blamePercent >= 60) {
+    return {
+      severityLabel: "적정 보상이 어울리는 판정",
+      prices: ["5천원대", "1~2만원대", "2만원대"],
+    };
   }
+
+  return {
+    severityLabel: "가벼운 사과로 충분한 판정",
+    prices: ["5천원대", "5천원대", "1만원 이하"],
+  };
 }
 
 function getLuaMessage({
@@ -212,7 +207,7 @@ export function createRewardChatRecommendation({
   const blamedParty = partyAPercent >= partyBPercent ? "A" : "B";
   const blamePercent = Math.max(partyAPercent, partyBPercent);
   const severity = getRewardSeverity(blamePercent);
-  const priceHints = getPriceHints(severity);
+  const priceBand = getRewardPriceBand(blamePercent);
   const [firstTerm, secondTerm, thirdTerm] = recommendation.searchTerms;
   const candidates = [
     {
@@ -220,7 +215,7 @@ export function createRewardChatRecommendation({
       title: firstTerm,
       query: firstTerm,
       shoppingUrl: createShoppingSearchUrl(firstTerm),
-      priceHint: priceHints[0],
+      priceHint: priceBand.prices[0],
       message: "가볍게 풀 수 있는 정도의 토스 상품이에요.",
     },
     {
@@ -228,7 +223,7 @@ export function createRewardChatRecommendation({
       title: secondTerm,
       query: secondTerm,
       shoppingUrl: createShoppingSearchUrl(secondTerm),
-      priceHint: priceHints[1],
+      priceHint: priceBand.prices[1],
       message: "잘못 정도와 부담감을 맞춘 중간 보상이에요.",
     },
     {
@@ -236,7 +231,7 @@ export function createRewardChatRecommendation({
       title: thirdTerm,
       query: thirdTerm,
       shoppingUrl: createShoppingSearchUrl(thirdTerm),
-      priceHint: priceHints[2],
+      priceHint: priceBand.prices[2],
       message: "상대가 아직 서운할 때 확실히 마음을 보여주는 상품이에요.",
     },
   ] as const;
@@ -246,7 +241,7 @@ export function createRewardChatRecommendation({
     blamedParty,
     blamePercent,
     severity,
-    severityLabel: getSeverityLabel(severity),
+    severityLabel: priceBand.severityLabel,
     luaMessage: getLuaMessage({
       blamedParty,
       blamePercent,

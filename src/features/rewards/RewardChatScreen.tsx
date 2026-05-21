@@ -131,7 +131,7 @@ export function RewardChatScreen({ result, onBack, onHome }: RewardChatScreenPro
             <p>
               이번 판정은 {blamedParty}가 {blamePercent}% 선넘었어요.
             </p>
-            <p>원하는 보상을 말해주면, 루아가 토스 쇼핑에서 찾기 좋은 후보로 골라볼게요.</p>
+            <p>원하는 보상을 말해주면, 루아가 토스 쇼핑에서 보상 후보를 골라볼게요.</p>
           </div>
         </div>
       </section>
@@ -169,57 +169,24 @@ export function RewardChatScreen({ result, onBack, onHome }: RewardChatScreenPro
             </button>
           </div>
 
-          <p className="reward-composer-lead">
-            선택한 토스 상품 {selectedCandidates.length}개
-          </p>
-          <p className="reward-composer-summary">
-            <strong>{recommendation.severityLabel}</strong>
-            <span>{recommendation.luaMessage}</span>
-          </p>
-
           <ol className="reward-candidate-list">
-            {recommendation.candidates.map((candidate, index) => {
-              const isSelected = selectedTones.includes(candidate.tone);
-
-              return (
-                <li className="reward-candidate-card" key={candidate.tone}>
-                  <label>
-                    <input
-                      aria-label={`${candidate.tone} 선택`}
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleCandidate(candidate.tone)}
-                    />
-                    <span className="reward-candidate-card__check" aria-hidden="true" />
-                    <span
-                      className={`reward-candidate-card__thumb reward-candidate-card__thumb--${
-                        index + 1
-                      }`}
-                      aria-hidden="true"
-                    >
-                      {candidate.query.slice(0, 1)}
-                    </span>
-                    <span className="reward-candidate-card__source">
-                      토스 상품 추천
-                    </span>
-                    <span className="reward-candidate-card__tone">{candidate.tone}</span>
-                    <strong>{candidate.title}</strong>
-                    <em>{candidate.priceHint}</em>
-                  </label>
-                </li>
-              );
-            })}
+            {recommendation.candidates.map((candidate) => (
+              <li className="reward-candidate-card" key={candidate.tone}>
+                <label>
+                  <input
+                    aria-label={`${candidate.tone} 선택`}
+                    type="checkbox"
+                    checked={selectedTones.includes(candidate.tone)}
+                    onChange={() => toggleCandidate(candidate.tone)}
+                  />
+                  <span className="reward-candidate-card__source">토스 상품 추천</span>
+                  <span className="reward-candidate-card__tone">{candidate.tone}</span>
+                  <strong>{candidate.title}</strong>
+                  <em>{candidate.priceHint}</em>
+                </label>
+              </li>
+            ))}
           </ol>
-
-          <label className="reward-inquiry-message" htmlFor="reward-inquiry-message">
-            <span>상대방에게 보낼 보상 요청</span>
-            <textarea
-              id="reward-inquiry-message"
-              aria-label="상대방에게 보낼 메시지"
-              value={inquiryMessage}
-              readOnly
-            />
-          </label>
 
           <button
             className="reward-composer-cta"

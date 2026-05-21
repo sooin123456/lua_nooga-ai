@@ -76,6 +76,39 @@ describe("createRewardRecommendation", () => {
 });
 
 describe("createRewardChatRecommendation", () => {
+  it("uses a 5,000 won range for light blame", () => {
+    const recommendation = createRewardChatRecommendation({
+      wish: "달달한 거",
+      partyAPercent: 55,
+      partyBPercent: 45,
+    });
+
+    expect(recommendation.severityLabel).toContain("가벼운");
+    expect(recommendation.candidates[0].priceHint).toContain("5천원");
+  });
+
+  it("uses a 10,000 to 20,000 won range for medium blame", () => {
+    const recommendation = createRewardChatRecommendation({
+      wish: "커피",
+      partyAPercent: 72,
+      partyBPercent: 28,
+    });
+
+    expect(recommendation.severityLabel).toContain("적정");
+    expect(recommendation.candidates[1].priceHint).toMatch(/1~2만원|1만원|2만원/);
+  });
+
+  it("uses a 30,000 won plus range for severe blame", () => {
+    const recommendation = createRewardChatRecommendation({
+      wish: "귀여운 거",
+      partyAPercent: 12,
+      partyBPercent: 88,
+    });
+
+    expect(recommendation.severityLabel).toContain("확실한");
+    expect(recommendation.candidates[2].priceHint).toContain("3만원");
+  });
+
   it("scales candidates by the higher blame percentage", () => {
     const recommendation = createRewardChatRecommendation({
       wish: "달달한 거",
@@ -85,7 +118,7 @@ describe("createRewardChatRecommendation", () => {
 
     expect(recommendation.blamedParty).toBe("A");
     expect(recommendation.blamePercent).toBe(72);
-    expect(recommendation.severityLabel).toBe("커피/디저트급");
+    expect(recommendation.severityLabel).toBe("적정 보상이 어울리는 판정");
     expect(recommendation.luaMessage).toContain("A가 72% 선넘었어요");
     expect(recommendation.candidates).toHaveLength(3);
     expect(recommendation.candidates[0]).toMatchObject({
@@ -95,7 +128,7 @@ describe("createRewardChatRecommendation", () => {
     });
     expect(recommendation.candidates[2]).toMatchObject({
       tone: "확실한 사과",
-      priceHint: "1만원대",
+      priceHint: "2만원대",
       title: "케이크",
     });
   });
@@ -109,7 +142,7 @@ describe("createRewardChatRecommendation", () => {
 
     expect(recommendation.blamedParty).toBe("B");
     expect(recommendation.severity).toBe("serious");
-    expect(recommendation.severityLabel).toBe("기분 회복 선물급");
+    expect(recommendation.severityLabel).toBe("확실한 사과가 필요한 판정");
   });
 });
 

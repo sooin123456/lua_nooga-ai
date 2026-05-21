@@ -50,6 +50,30 @@ describe("RewardChatScreen", () => {
     expect(screen.queryByText("STEP 1")).not.toBeInTheDocument();
   });
 
+  it("shows Lua consultation copy and a home button before recommendation", () => {
+    renderRewardChat(
+      <RewardChatScreen result={result} onBack={vi.fn()} onHome={vi.fn()} />,
+    );
+
+    expect(screen.getByText("루아 보상 상담소")).toBeInTheDocument();
+    expect(screen.getByText(/보상 후보를 골라볼게요/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "홈으로 돌아가기" })).toBeInTheDocument();
+  });
+
+  it("shows Toss-shopping-style reward cards after entering a wish", async () => {
+    const user = userEvent.setup();
+    renderRewardChat(
+      <RewardChatScreen result={result} onBack={vi.fn()} onHome={vi.fn()} />,
+    );
+
+    await user.type(screen.getByRole("textbox", { name: "받고 싶은 보상" }), "달달한 거");
+    await user.click(screen.getByRole("button", { name: "루아에게 골라달라 하기" }));
+
+    expect(screen.getByText("잘못 정도별 토스 상품 추천")).toBeInTheDocument();
+    expect(screen.getAllByText("토스 상품 추천")).toHaveLength(3);
+    expect(screen.queryByText("문자 메시지 작성")).not.toBeInTheDocument();
+  });
+
   it("shows Toss product recommendations classified by blame severity", async () => {
     const user = userEvent.setup();
     renderRewardChat(
@@ -61,18 +85,12 @@ describe("RewardChatScreen", () => {
 
     expect(screen.getByText("잘못 정도별 토스 상품 추천")).toBeInTheDocument();
     expect(screen.queryByText("문의 메시지 작성")).not.toBeInTheDocument();
-    expect(screen.getByText("선택한 토스 상품 3개")).toBeInTheDocument();
-    expect(screen.getByText("커피/디저트급")).toBeInTheDocument();
     expect(screen.getByText("가벼운 사과")).toBeInTheDocument();
     expect(screen.getByText("적정 보상")).toBeInTheDocument();
     expect(screen.getByText("확실한 사과")).toBeInTheDocument();
     expect(screen.getAllByText("토스 상품 추천")).toHaveLength(3);
     expect(screen.getAllByRole("checkbox", { checked: true })).toHaveLength(3);
-    expect(
-      screen.getByRole<HTMLTextAreaElement>("textbox", {
-        name: "상대방에게 보낼 메시지",
-      }).value,
-    ).toContain("달달한 거");
+    expect(screen.queryByRole("textbox", { name: "상대방에게 보낼 메시지" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "3개 상품 링크 보내기" })).toBeInTheDocument();
   });
 
