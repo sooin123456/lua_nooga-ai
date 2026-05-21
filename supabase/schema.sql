@@ -86,6 +86,22 @@ create table if not exists public.result_likes (
   primary key (result_id, client_key)
 );
 
+create table if not exists public.anonymous_users (
+  anonymous_user_key text primary key,
+  created_at timestamptz not null default now(),
+  blocked_at timestamptz
+);
+
+create table if not exists public.daily_ai_usage (
+  anonymous_user_key text not null references public.anonymous_users(anonymous_user_key) on delete cascade,
+  usage_date date not null,
+  free_uses integer not null default 0,
+  share_bonus_uses integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (anonymous_user_key, usage_date)
+);
+
 create index if not exists result_comments_result_created_idx
   on public.result_comments(result_id, created_at desc);
 
@@ -95,6 +111,8 @@ alter table public.room_messages enable row level security;
 alter table public.judgment_results enable row level security;
 alter table public.result_comments enable row level security;
 alter table public.result_likes enable row level security;
+alter table public.anonymous_users enable row level security;
+alter table public.daily_ai_usage enable row level security;
 
 revoke all on public.judgment_rooms from anon, authenticated;
 revoke all on public.room_participants from anon, authenticated;
@@ -102,6 +120,8 @@ revoke all on public.room_messages from anon, authenticated;
 revoke all on public.judgment_results from anon, authenticated;
 revoke all on public.result_comments from anon, authenticated;
 revoke all on public.result_likes from anon, authenticated;
+revoke all on public.anonymous_users from anon, authenticated;
+revoke all on public.daily_ai_usage from anon, authenticated;
 
 grant usage on schema public to anon, authenticated;
 
@@ -800,6 +820,64 @@ as $$
   limit greatest(1, least(coalesce(p_limit, 5), 20));
 $$;
 
+create or replace function public.consume_free_judgment_use(
+  p_anonymous_user_key text,
+  p_usage_date date,
+  p_free_limit integer default 3
+)
+returns table (
+  allowed boolean,
+  remaining_free_uses integer
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  usage_row public.daily_ai_usage%rowtype;
+begin
+  if length(trim(p_anonymous_user_key)) < 8 then
+    raise exception 'invalid anonymous user key';
+  end if;
+
+  insert into public.anonymous_users (anonymous_user_key)
+  values (trim(p_anonymous_user_key))
+  on conflict (anonymous_user_key) do nothing;
+
+  insert into public.daily_ai_usage (anonymous_user_key, usage_date)
+  values (trim(p_anonymous_user_key), p_usage_date)
+  on conflict (anonymous_user_key, usage_date) do nothing;
+
+  select *
+  into usage_row
+  from public.daily_ai_usage
+  where anonymous_user_key = trim(p_anonymous_user_key)
+    and usage_date = p_usage_date
+  for update;
+
+  if usage_row.free_uses >= p_free_limit + usage_row.share_bonus_uses then
+    allowed := false;
+    remaining_free_uses := 0;
+    return next;
+    return;
+  end if;
+
+  update public.daily_ai_usage
+  set free_uses = free_uses + 1,
+      updated_at = now()
+  where anonymous_user_key = trim(p_anonymous_user_key)
+    and usage_date = p_usage_date
+  returning * into usage_row;
+
+  allowed := true;
+  remaining_free_uses := greatest(
+    0,
+    p_free_limit + usage_row.share_bonus_uses - usage_row.free_uses
+  );
+  return next;
+end;
+$$;
+
 revoke all on function public.cleanup_expired_room_messages() from public, anon, authenticated;
 
 revoke all on function public.create_judgment_room(text, timestamptz) from public;
@@ -817,6 +895,7 @@ revoke all on function public.add_result_comment(uuid, text) from public;
 revoke all on function public.get_result_like_state(uuid, text) from public;
 revoke all on function public.set_result_like(uuid, text, boolean) from public;
 revoke all on function public.list_hot_battles(integer) from public;
+revoke all on function public.consume_free_judgment_use(text, date, integer) from public, anon, authenticated;
 
 grant execute on function public.create_judgment_room(text, timestamptz) to anon, authenticated;
 grant execute on function public.get_judgment_room(uuid, text) to anon, authenticated;
@@ -833,6 +912,7 @@ grant execute on function public.add_result_comment(uuid, text) to anon, authent
 grant execute on function public.get_result_like_state(uuid, text) to anon, authenticated;
 grant execute on function public.set_result_like(uuid, text, boolean) to anon, authenticated;
 grant execute on function public.list_hot_battles(integer) to anon, authenticated;
+grant execute on function public.consume_free_judgment_use(text, date, integer) to service_role;
 
 drop policy if exists "public can create shareable judgment results" on public.judgment_results;
 drop policy if exists "public can read active judgment results" on public.judgment_results;
