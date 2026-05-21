@@ -1,5 +1,5 @@
 import { openURL } from "@apps-in-toss/web-framework";
-import { Flame, Gift, History, Home, MessageCirclePlus } from "lucide-react";
+import { Archive, Flame, Gift, History, Home, MessageCirclePlus } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { EvidenceMethodCard } from "./EvidenceMethodCard";
@@ -491,6 +491,29 @@ export function InputHome({
   return (
     <main className="screen screen--home">
       <section className="home-dashboard" aria-label="입력 방식 선택">
+        <div className="home-top-actions">
+          <button
+            className="home-archive-button"
+            type="button"
+            aria-label="최근 판정"
+            onClick={openRecentTab}
+          >
+            <span className="home-3d-icon home-3d-icon--archive" aria-hidden="true">
+              <Archive size={22} strokeWidth={2.6} />
+            </span>
+          </button>
+        </div>
+
+        <button className="home-reward-card" type="button" onClick={() => void openRandomReward()}>
+          <span className="home-3d-icon home-3d-icon--gift" aria-hidden="true">
+            <Gift size={20} strokeWidth={2.5} />
+          </span>
+          <div>
+            <strong>루아가 직접 화해의 상품을 추천해요</strong>
+            <p>누르면 랜덤으로 {randomRewardLabel} 같은 보상을 토스 쇼핑에서 찾아요.</p>
+          </div>
+        </button>
+
         <article className="home-profile-card">
           <img
             src="/lua-ai-judge.png"
@@ -505,34 +528,20 @@ export function InputHome({
           </div>
         </article>
 
-        <article className="home-tip-card">
-          <span aria-hidden="true">🔥</span>
-          <div>
-            <strong>오늘의 핫 Battle 🔥</strong>
-            <p>{leaderboardStatus}</p>
-          </div>
+        <div className="home-main-tabs" aria-label="빠른 실행">
           <button type="button" onClick={openHotBattleTab}>
-            보러가기
+            <span className="home-3d-icon home-3d-icon--fire" aria-hidden="true">
+              <Flame size={20} strokeWidth={2.6} />
+            </span>
+            <strong>오늘의 핫 Battle</strong>
+            <em>Top 3 보기</em>
           </button>
-        </article>
-
-        <button className="home-reward-card" type="button" onClick={() => void openRandomReward()}>
-          <span>
-            <Gift size={20} strokeWidth={2.5} />
-          </span>
-          <div>
-            <strong>루아가 직접 화해의 상품을 추천해요</strong>
-            <p>누르면 랜덤으로 {randomRewardLabel} 같은 보상을 토스 쇼핑에서 찾아요.</p>
-          </div>
-        </button>
-
-        <div className="home-quick-actions">
           <button type="button" onClick={createRoomFromHome}>
-            <span>
-              <MessageCirclePlus size={20} strokeWidth={2.5} />
+            <span className="home-3d-icon home-3d-icon--chat" aria-hidden="true">
+              <MessageCirclePlus size={20} strokeWidth={2.6} />
             </span>
             <strong>실시간 판정방 만들기</strong>
-            <em>초대 링크로 상대를 부르고 대화는 60초 뒤 사라져요.</em>
+            <em>초대 링크 열기</em>
           </button>
         </div>
 
@@ -548,14 +557,6 @@ export function InputHome({
             />
           ))}
         </div>
-
-        <article className="home-status-card" id="home-recent-card">
-          <div>
-            <strong>최근 판정</strong>
-            <p>아직 저장된 판정이 없어요. 첫 사건을 접수해 보세요.</p>
-          </div>
-          <span>0건</span>
-        </article>
 
         <p className="home-privacy-note">
           현재 무료 판독은 입력 내용을 이 기기 안에서만 가볍게 분석해요.

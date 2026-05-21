@@ -144,7 +144,7 @@ describe("App text review flow", () => {
     expect(
       screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
     ).toBeInTheDocument();
-    expect(screen.getByText("최근 판정")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "최근 판정" })).toBeInTheDocument();
     expect(screen.queryByText("억울하면 판례로 다시 따지기")).not.toBeInTheDocument();
     expect(screen.getByText(/현재 무료 판독은 입력 내용을/)).toBeInTheDocument();
   });
@@ -162,7 +162,7 @@ describe("App text review flow", () => {
     fireEvent.popState(window);
 
     await waitFor(() => {
-      expect(screen.getByText("오늘의 핫 Battle 🔥")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /오늘의 핫 Battle/ })).toBeInTheDocument();
     });
     expect(screen.queryByText("증거 확인")).not.toBeInTheDocument();
   });
@@ -453,7 +453,7 @@ describe("App text review flow", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("최근 판정")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "최근 판정" })).toBeInTheDocument();
     });
 
     expect(screen.queryByText("임시 판독 결과")).not.toBeInTheDocument();
@@ -473,7 +473,7 @@ describe("App text review flow", () => {
     await renderAppHome(user);
 
     expect(screen.getByText("루아 AI")).toBeInTheDocument();
-    expect(screen.getByText("최근 판정")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "최근 판정" })).toBeInTheDocument();
     expect(screen.queryByText("억울하면 판례로 다시 따지기")).not.toBeInTheDocument();
 
     await user.click(
@@ -496,7 +496,7 @@ describe("App text review flow", () => {
     expect(screen.getByText("확실한 사과")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "홈으로 돌아가기" }));
-    expect(await screen.findByText("최근 판정")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "최근 판정" })).toBeInTheDocument();
     expect(screen.queryByText("억울하면 판례로 다시 따지기")).not.toBeInTheDocument();
   });
 

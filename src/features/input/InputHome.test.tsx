@@ -14,14 +14,13 @@ describe("InputHome", () => {
     );
 
     expect(screen.getByText("루아 AI")).toBeInTheDocument();
-    expect(screen.getByText("오늘의 핫 Battle 🔥")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "보러가기" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /오늘의 핫 Battle/ })).toBeInTheDocument();
     expect(
       screen.queryByText("연락 늦게 봤다 vs 말투가 셌다"),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("둘이 같이 판정받기")).not.toBeInTheDocument();
     expect(screen.queryByText("60초 안에 각자 말하고 결과만 남겨요.")).not.toBeInTheDocument();
-    expect(screen.getByText("최근 판정")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "최근 판정" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /루아가 직접 화해의 상품을 추천해요/ })).toBeInTheDocument();
     expect(screen.queryByText("억울하면 판례로 다시 따지기")).not.toBeInTheDocument();
     expect(screen.getByText(/현재 무료 판독은 입력 내용을/)).toBeInTheDocument();
@@ -66,7 +65,7 @@ describe("InputHome", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "보러가기" }));
+    await user.click(screen.getByRole("button", { name: /오늘의 핫 Battle/ }));
 
     expect(screen.getByRole("heading", { name: "Top 3" })).toBeInTheDocument();
     expect(screen.getByText("올라온 리스트")).toBeInTheDocument();
@@ -154,7 +153,7 @@ describe("InputHome", () => {
     await user.click(screen.getAllByRole("button", { name: "자세히 보기" })[0]);
     await user.click(screen.getByRole("button", { name: "홈" }));
 
-    expect(screen.getByText("오늘의 핫 Battle 🔥")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /오늘의 핫 Battle/ })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "대화 내용" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "홈" })).toHaveAttribute(
       "aria-current",
@@ -173,7 +172,7 @@ describe("InputHome", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "보러가기" }));
+    await user.click(screen.getByRole("button", { name: /오늘의 핫 Battle/ }));
     await user.click(screen.getAllByRole("button", { name: "자세히 보기" })[1]);
 
     expect(screen.getByRole("heading", { name: "루아 판정" })).toBeInTheDocument();
@@ -356,8 +355,8 @@ describe("InputHome", () => {
       />,
     );
 
+    await userEvent.click(screen.getByRole("button", { name: /오늘의 핫 Battle/ }));
     expect(await screen.findByText("실시간 공유 결과 기준으로 집계했어요.")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "보러가기" }));
 
     expect(screen.getAllByText("B가 73% 선넘었어요").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/댓글 4/).length).toBeGreaterThan(0);
