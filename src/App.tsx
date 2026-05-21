@@ -102,6 +102,27 @@ const reviewHelpers: Partial<Record<InputMethod, string>> = {
 const ocrSuccessMessage =
   "캡처에서 글자를 읽었어요. 내용을 확인하고 고쳐 주세요.";
 const ocrPendingMessage = "캡처에서 글자를 읽고 있어요.";
+const introCompleteStorageKey = "lua-nooga-intro-complete";
+
+function hasCompletedIntro() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return window.localStorage.getItem(introCompleteStorageKey) === "true";
+}
+
+function markIntroComplete() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(introCompleteStorageKey, "true");
+  } catch {
+    // Intro persistence is non-critical; still allow app entry.
+  }
+}
 
 function getInitialRoomId() {
   if (typeof window === "undefined") {
@@ -141,7 +162,7 @@ function createInitialState(): AppState {
   const roomId = getInitialRoomId();
 
   if (!roomId) {
-    return { screen: "intro" };
+    return hasCompletedIntro() ? { screen: "home" } : { screen: "intro" };
   }
 
   return {
@@ -269,7 +290,8 @@ function App() {
     setState({ screen: "home" });
   };
 
-  const startJudgment = () => {
+  const enterHomeFromIntro = () => {
+    markIntroComplete();
     setState({ screen: "home" });
   };
 
@@ -1164,7 +1186,7 @@ function App() {
   }
 
   if (state.screen === "intro") {
-    return <IntroScreen onStart={startJudgment} />;
+    return <IntroScreen onStart={enterHomeFromIntro} />;
   }
 
   return <InputHome onCreateRoom={() => void startRoom()} onSelect={handleSelect} />;

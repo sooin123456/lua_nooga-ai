@@ -1,7 +1,7 @@
 import { ThemeProvider } from "@toss/tds-mobile";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { analyzeWithRules } from "./features/analyzer/ruleBasedAnalyzer";
 import {
@@ -34,6 +34,10 @@ beforeAll(() => {
   });
 });
 
+afterEach(() => {
+  localStorage.clear();
+});
+
 async function renderAppHome(user: ReturnType<typeof userEvent.setup>) {
   render(
     <ThemeProvider>
@@ -43,6 +47,29 @@ async function renderAppHome(user: ReturnType<typeof userEvent.setup>) {
 
   await user.click(screen.getByRole("button", { name: "판정 시작하기" }));
 }
+
+describe("Lua court intro", () => {
+  it("shows the Lua court intro only before the first home visit", async () => {
+    localStorage.clear();
+    render(<App />);
+
+    expect(screen.getByText(/증거를 제출하세요/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "판정 시작하기" }));
+
+    expect(screen.getByText("루아 AI")).toBeInTheDocument();
+    expect(localStorage.getItem("lua-nooga-intro-complete")).toBe("true");
+  });
+
+  it("skips the Lua court intro after the first visit is complete", () => {
+    localStorage.setItem("lua-nooga-intro-complete", "true");
+
+    render(<App />);
+
+    expect(screen.queryByText(/증거를 제출하세요/)).not.toBeInTheDocument();
+    expect(screen.getByText("루아 AI")).toBeInTheDocument();
+  });
+});
 
 describe("App text review flow", () => {
   it("starts on the intro screen before showing the main dashboard", async () => {
