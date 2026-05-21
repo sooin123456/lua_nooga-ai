@@ -305,15 +305,16 @@ export function InputHome({
               {selectedBattle.rank}위
             </span>
             <div>
-              <h2>판정 결과</h2>
-              <strong>{selectedBattle.title}</strong>
-              <p>{selectedBattle.verdict}</p>
+              <h1>{selectedBattle.title}</h1>
+              <p>댓글과 좋아요가 많이 모인 공개 Battle이에요.</p>
             </div>
-            <p>{selectedBattle.summary}</p>
             <div className="home-battle-detail__meta">
               <span>댓글 {commentCounts[selectedBattle.id]}</span>
               <span>좋아요 {selectedBattle.likes}</span>
             </div>
+            <p className="home-battle-detail__privacy">
+              공개 Battle은 개인정보를 제외한 익명 요약으로 보여줘요.
+            </p>
           </article>
 
           <section className="home-battle-transcript" aria-label="대화 내용">
@@ -325,8 +326,14 @@ export function InputHome({
             </ol>
           </section>
 
-          <section className="home-battle-comments" aria-label="댓글">
-            <h2>댓글</h2>
+          <article className="home-battle-verdict">
+            <h2>루아 판정</h2>
+            <strong>{selectedBattle.verdict}</strong>
+            <p>{selectedBattle.summary}</p>
+          </article>
+
+          <section className="home-battle-comments" aria-label="댓글쓰기">
+            <h2>댓글쓰기</h2>
             <ol>
               {latestComments[selectedBattle.id] ? (
                 <li>{latestComments[selectedBattle.id]}</li>

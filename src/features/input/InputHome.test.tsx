@@ -179,8 +179,12 @@ describe("InputHome", () => {
     await user.click(screen.getByRole("button", { name: "랭킹 보기" }));
     await user.click(screen.getAllByRole("button", { name: "댓글달기" })[1]);
 
-    expect(screen.getByRole("heading", { name: "판정 결과" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "루아 판정" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "대화 내용" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "댓글쓰기" })).toBeInTheDocument();
+    expect(
+      screen.getByText("공개 Battle은 개인정보를 제외한 익명 요약으로 보여줘요."),
+    ).toBeInTheDocument();
     expect(screen.getByText("A: 거의 다 왔어?")) .toBeInTheDocument();
     expect(screen.getByText("B: 미안, 20분 늦을 것 같아.")) .toBeInTheDocument();
 
@@ -192,6 +196,34 @@ describe("InputHome", () => {
     expect(
       screen.getByRole("button", { name: "핫 Battle로 돌아가기" }),
     ).toBeInTheDocument();
+  });
+
+  it("shows hot Battle detail in conversation, verdict, comments order", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <InputHome
+        resultShareService={null}
+        onCreateRoom={vi.fn()}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "핫 Battle" }));
+    await user.click(screen.getAllByRole("button", { name: "댓글달기" })[0]);
+
+    const conversationHeading = screen.getByRole("heading", { name: "대화 내용" });
+    const verdictHeading = screen.getByRole("heading", { name: "루아 판정" });
+    const commentsHeading = screen.getByRole("heading", { name: "댓글쓰기" });
+
+    expect(
+      conversationHeading.compareDocumentPosition(verdictHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      verdictHeading.compareDocumentPosition(commentsHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('calls onSelect with "screenshot" when the screenshot method is clicked', async () => {
