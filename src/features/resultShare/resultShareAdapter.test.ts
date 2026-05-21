@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { createSupabaseResultShareGateway } from "./resultShareAdapter";
+import {
+  createResultShareService,
+  createSupabaseResultShareGateway,
+} from "./resultShareAdapter";
 
 const result = {
   verdict: "A가 62% 선넘었어요",
@@ -80,6 +83,85 @@ function createRpcSupabaseMock() {
 }
 
 describe("resultShareAdapter", () => {
+  it("creates a public-safe summary before saving shared results", async () => {
+    const publicResult = {
+      ...result,
+      publicTitle: "약속 시간 Battle",
+      issueSummary: "늦은 설명과 기다린 감정이 부딪혔어요.",
+      anonymizedDialogueSummary: [
+        "A는 늦은 이유를 설명했어요.",
+        "B는 기다린 감정을 말했어요.",
+      ],
+    };
+    const gateway = {
+      createSharedResult: vi.fn().mockResolvedValue({
+        id: "result-1",
+        result: publicResult,
+        createdAt: "2026-05-21T00:00:00.000Z",
+        expiresAt: "2026-05-28T00:00:00.000Z",
+      }),
+      getSharedResult: vi.fn(),
+      listComments: vi.fn(),
+      addComment: vi.fn(),
+      getLikeState: vi.fn(),
+      setLiked: vi.fn(),
+      listHotBattles: vi.fn(),
+    };
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ result: publicResult }),
+    });
+    const service = createResultShareService({
+      gateway,
+      publicSummaryEndpointUrl: "/api/ai/public-summary",
+      fetcher: fetcher as never,
+    });
+
+    await service.createSharedResult(result, {
+      sourceText: "A: 늦어서 미안\nB: 왜 이제 와",
+    });
+
+    expect(fetcher).toHaveBeenCalledWith("/api/ai/public-summary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        result,
+        sourceText: "A: 늦어서 미안\nB: 왜 이제 와",
+      }),
+    });
+    expect(gateway.createSharedResult).toHaveBeenCalledWith(publicResult);
+    expect(JSON.stringify(gateway.createSharedResult.mock.calls[0][0])).not.toContain(
+      "왜 이제 와",
+    );
+  });
+
+  it("falls back to the current result when public summary creation fails", async () => {
+    const gateway = {
+      createSharedResult: vi.fn().mockResolvedValue({
+        id: "result-1",
+        result,
+        createdAt: "2026-05-21T00:00:00.000Z",
+        expiresAt: "2026-05-28T00:00:00.000Z",
+      }),
+      getSharedResult: vi.fn(),
+      listComments: vi.fn(),
+      addComment: vi.fn(),
+      getLikeState: vi.fn(),
+      setLiked: vi.fn(),
+      listHotBattles: vi.fn(),
+    };
+    const service = createResultShareService({
+      gateway,
+      fetcher: vi.fn().mockRejectedValue(new Error("offline")) as never,
+    });
+
+    await service.createSharedResult(result, {
+      sourceText: "A: test",
+    });
+
+    expect(gateway.createSharedResult).toHaveBeenCalledWith(result);
+  });
+
   it("uses RPCs for shared result reactions instead of raw table access", async () => {
     const supabase = createRpcSupabaseMock();
     const gateway = createSupabaseResultShareGateway(supabase as never);

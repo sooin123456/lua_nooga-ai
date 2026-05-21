@@ -23,6 +23,7 @@ type ResultScreenProps = {
 
 export function ResultScreen({
   result,
+  sourceText,
   sharedResultId,
   resultShareService,
   onRestart,
@@ -82,7 +83,9 @@ export function ResultScreen({
       return null;
     }
 
-    const sharedResult = await configuredResultShareService.createSharedResult(result);
+    const sharedResult = await configuredResultShareService.createSharedResult(result, {
+      sourceText,
+    });
     setActiveSharedResultId(sharedResult.id);
     await grantShareBonus();
     return sharedResult.id;

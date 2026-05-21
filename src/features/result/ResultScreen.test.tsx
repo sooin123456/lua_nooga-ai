@@ -41,7 +41,7 @@ function renderResultScreen(ui: ReactNode) {
 }
 
 describe("ResultScreen", () => {
-  it("shows verdict, reasons, advice, and two primary actions before comments", () => {
+  it("shows verdict, reasons, advice, and two primary actions before sharing", () => {
     renderResultScreen(
       <ResultScreen
         result={normalResult}
@@ -57,7 +57,7 @@ describe("ResultScreen", () => {
       "result-primary-action--reward",
     );
     expect(screen.getByRole("button", { name: "다시 판독하기" })).toBeInTheDocument();
-    expect(screen.getByText("댓글쓰기")).toBeInTheDocument();
+    expect(screen.getByText("사람들한테 물어보기")).toBeInTheDocument();
   });
 
   it("keeps precedent analysis folded behind a red objection CTA", () => {
@@ -270,7 +270,7 @@ describe("ResultScreen", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("does not show comment, share, or objection actions for safety results", () => {
+  it("does not show share or objection actions for safety results", () => {
     renderResultScreen(
       <ResultScreen
         result={{ ...result, safetyLevel: "caution" }}
@@ -280,6 +280,7 @@ describe("ResultScreen", () => {
     );
 
     expect(screen.queryByText("댓글쓰기")).not.toBeInTheDocument();
+    expect(screen.queryByText("사람들한테 물어보기")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "판정 공유하기" }),
     ).not.toBeInTheDocument();
@@ -291,7 +292,7 @@ describe("ResultScreen", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("supports lightweight likes, comments, and sharing", async () => {
+  it("supports asking people by sharing", async () => {
     const user = userEvent.setup();
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", {
@@ -310,17 +311,10 @@ describe("ResultScreen", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "0개의 댓글" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "선넘었어요 0" }));
-    expect(screen.getByRole("button", { name: "선넘었어요 1" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-
-    await user.type(screen.getByRole("textbox", { name: "판정 댓글" }), "이건 인정");
-    await user.click(screen.getByRole("button", { name: "등록" }));
-    expect(screen.getByText("이건 인정")).toBeInTheDocument();
-
+    expect(screen.getByRole("heading", { name: "사람들한테 물어보기" })).toBeInTheDocument();
+    expect(screen.getByText(/오늘의 핫 Battle에 올라가 의견/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "카톡 보내기" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "다른 앱으로 공유하기" }));
     expect(screen.getByRole("button", { name: "카톡 보내기" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "텔레그램 보내기" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "링크 보내기" })).toBeInTheDocument();
@@ -329,30 +323,7 @@ describe("ResultScreen", () => {
     expect(screen.getByText("공유 링크를 복사했어요.")).toBeInTheDocument();
   });
 
-  it("blocks public comments that cross the line", async () => {
-    const user = userEvent.setup();
-
-    renderResultScreen(
-      <ResultScreen
-        result={result}
-        resultShareService={null}
-        onRestart={vi.fn()}
-      />,
-    );
-
-    await user.type(
-      screen.getByRole("textbox", { name: "판정 댓글" }),
-      "진짜 죽여버려",
-    );
-    await user.click(screen.getByRole("button", { name: "등록" }));
-
-    expect(
-      screen.getByText("선넘었어요. 댓글은 가볍게 남겨주세요."),
-    ).toBeInTheDocument();
-    expect(screen.queryByText("익명 1")).not.toBeInTheDocument();
-  });
-
-  it("stores reactions through the result share service before sharing", async () => {
+  it("stores a shared result before link sharing", async () => {
     const user = userEvent.setup();
     const writeText = vi.fn().mockResolvedValue(undefined);
     const resultShareService = {
@@ -392,29 +363,20 @@ describe("ResultScreen", () => {
     renderResultScreen(
       <ResultScreen
         result={result}
+        sourceText="A: 늦어서 미안"
         resultShareService={resultShareService}
         onRestart={vi.fn()}
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "선넘었어요 0" }));
-    expect(await screen.findByRole("button", { name: "선넘었어요 1" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    expect(resultShareService.createSharedResult).toHaveBeenCalledWith(result);
-    expect(resultShareService.setLiked).toHaveBeenCalledWith("shared-1", true);
-
-    await user.type(screen.getByRole("textbox", { name: "판정 댓글" }), "서버 댓글");
-    await user.click(screen.getByRole("button", { name: "등록" }));
-    expect(await screen.findByText("서버 댓글")).toBeInTheDocument();
-    expect(resultShareService.addComment).toHaveBeenCalledWith(
-      "shared-1",
-      "서버 댓글",
-    );
-
+    await user.click(screen.getByRole("button", { name: "다른 앱으로 공유하기" }));
     await user.click(screen.getByRole("button", { name: "링크 보내기" }));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining("result=shared-1"));
+    expect(resultShareService.createSharedResult).toHaveBeenCalledWith(result, {
+      sourceText: "A: 늦어서 미안",
+    });
+    expect(resultShareService.setLiked).not.toHaveBeenCalled();
+    expect(resultShareService.addComment).not.toHaveBeenCalled();
     expect(screen.getByText("공유 링크를 복사했어요.")).toBeInTheDocument();
   });
 

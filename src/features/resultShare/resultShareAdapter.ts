@@ -35,6 +35,12 @@ type CommentRow = {
 
 type ResultShareServiceOptions = {
   gateway: ResultShareGateway;
+  publicSummaryEndpointUrl?: string;
+  fetcher?: typeof fetch;
+};
+
+type CreateSharedResultOptions = {
+  sourceText?: string;
 };
 
 function mapResultRow(row: ResultRow): SharedJudgmentResult {
@@ -106,9 +112,44 @@ function getResultReactionClientKey() {
 
 export function createResultShareService({
   gateway,
+  publicSummaryEndpointUrl = "/api/ai/public-summary",
+  fetcher = fetch,
 }: ResultShareServiceOptions) {
+  const createPublicResult = async (
+    result: JudgmentResult,
+    options?: CreateSharedResultOptions,
+  ) => {
+    const sourceText = options?.sourceText?.trim();
+
+    if (!sourceText) {
+      return result;
+    }
+
+    try {
+      const response = await fetcher(publicSummaryEndpointUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ result, sourceText }),
+      });
+      const payload = (await response.json()) as { result?: JudgmentResult };
+
+      if (response.ok && payload.result) {
+        return payload.result;
+      }
+    } catch {
+      // Sharing should remain available locally even when the summary API is unavailable.
+    }
+
+    return result;
+  };
+
   return {
-    createSharedResult: gateway.createSharedResult,
+    async createSharedResult(
+      result: JudgmentResult,
+      options?: CreateSharedResultOptions,
+    ) {
+      return gateway.createSharedResult(await createPublicResult(result, options));
+    },
     getSharedResult: gateway.getSharedResult,
     listComments: gateway.listComments,
     addComment: gateway.addComment,
