@@ -30,6 +30,7 @@ const result: JudgmentResult = {
   advice: "바로 결론내기보다 각자 원하는 걸 한 문장으로 말해보세요.",
   safetyLevel: "normal",
 };
+const normalResult = result;
 
 function ThemeWrapper({ children }: { children: ReactNode }) {
   return <ThemeProvider>{children}</ThemeProvider>;
@@ -40,6 +41,40 @@ function renderResultScreen(ui: ReactNode) {
 }
 
 describe("ResultScreen", () => {
+  it("shows verdict, reasons, advice, and two primary actions before comments", () => {
+    renderResultScreen(
+      <ResultScreen
+        result={normalResult}
+        onRestart={vi.fn()}
+        onOpenRewardChat={vi.fn()}
+        resultShareService={null}
+      />,
+    );
+
+    expect(screen.getByText("오늘의 판정")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "보상받기" })).toHaveClass(
+      "result-primary-action--reward",
+    );
+    expect(screen.getByRole("button", { name: "다시 판독하기" })).toBeInTheDocument();
+    expect(screen.getByText("댓글쓰기")).toBeInTheDocument();
+  });
+
+  it("keeps precedent analysis folded behind a red objection CTA", () => {
+    renderResultScreen(
+      <ResultScreen
+        result={normalResult}
+        onRestart={vi.fn()}
+        onOpenRewardChat={vi.fn()}
+        resultShareService={null}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: /억울하면 유사 판례로 한 번 더 따져보기/ }),
+    ).toHaveClass("result-objection-cta");
+    expect(screen.queryByText("990원 결제 후")).not.toBeInTheDocument();
+  });
+
   it("shows verdict, percentages, exactly three reasons, advice, and disclaimer", () => {
     renderResultScreen(
       <ResultScreen
@@ -149,18 +184,17 @@ describe("ResultScreen", () => {
     );
 
     expect(screen.getByRole("heading", { name: "0개의 댓글" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "추천 0" }));
-    expect(screen.getByRole("button", { name: "추천 1" })).toHaveAttribute(
+    await user.click(screen.getByRole("button", { name: "선넘었어요 0" }));
+    expect(screen.getByRole("button", { name: "선넘었어요 1" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
 
-    await user.type(screen.getByLabelText("판독 결과 댓글"), "이건 인정");
+    await user.type(screen.getByRole("textbox", { name: "판정 댓글" }), "이건 인정");
     await user.click(screen.getByRole("button", { name: "등록" }));
     expect(screen.getByText("이건 인정")).toBeInTheDocument();
-    expect(screen.getByText("답글 0개")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "판독 결과 공유하기" }));
+    await user.click(screen.getByRole("button", { name: "판정 공유하기" }));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining(result.verdict));
     expect(screen.getByText("판독 결과를 공유할 수 있게 준비했어요.")).toBeInTheDocument();
   });
@@ -176,7 +210,10 @@ describe("ResultScreen", () => {
       />,
     );
 
-    await user.type(screen.getByLabelText("판독 결과 댓글"), "진짜 죽여버려");
+    await user.type(
+      screen.getByRole("textbox", { name: "판정 댓글" }),
+      "진짜 죽여버려",
+    );
     await user.click(screen.getByRole("button", { name: "등록" }));
 
     expect(
@@ -230,15 +267,15 @@ describe("ResultScreen", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "추천 0" }));
-    expect(await screen.findByRole("button", { name: "추천 1" })).toHaveAttribute(
+    await user.click(screen.getByRole("button", { name: "선넘었어요 0" }));
+    expect(await screen.findByRole("button", { name: "선넘었어요 1" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
     expect(resultShareService.createSharedResult).toHaveBeenCalledWith(result);
     expect(resultShareService.setLiked).toHaveBeenCalledWith("shared-1", true);
 
-    await user.type(screen.getByLabelText("판독 결과 댓글"), "서버 댓글");
+    await user.type(screen.getByRole("textbox", { name: "판정 댓글" }), "서버 댓글");
     await user.click(screen.getByRole("button", { name: "등록" }));
     expect(await screen.findByText("서버 댓글")).toBeInTheDocument();
     expect(resultShareService.addComment).toHaveBeenCalledWith(
@@ -246,7 +283,7 @@ describe("ResultScreen", () => {
       "서버 댓글",
     );
 
-    await user.click(screen.getByRole("button", { name: "판독 결과 공유하기" }));
+    await user.click(screen.getByRole("button", { name: "판정 공유하기" }));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining("result=shared-1"));
     expect(
       screen.getByText("공유 가능한 판독 결과 링크를 준비했어요."),

@@ -238,10 +238,8 @@ export function ResultScreen({
       >
         {isSafetyResult ? <p className="result-safety-badge">{safetyLabel}</p> : null}
 
-        <VerdictSummaryCard
-          isSafetyResult={isSafetyResult}
-          verdict={result.verdict}
-        >
+        <h2 className="sr-only">오늘의 판정</h2>
+        <VerdictSummaryCard isSafetyResult={isSafetyResult} verdict={result.verdict}>
           <AnimatedPercentBar
             partyAPercent={result.partyAPercent}
             partyBPercent={result.partyBPercent}
@@ -275,109 +273,92 @@ export function ResultScreen({
         상담이 아니에요.
       </p>
 
-      <div className="result-primary-actions">
+      <div className="result-primary-actions" aria-label="다음 행동">
         {!isSafetyResult ? (
-          <Button type="button" onClick={onOpenRewardChat} disabled={!onOpenRewardChat}>
+          <Button
+            className="result-primary-action result-primary-action--reward"
+            type="button"
+            onClick={onOpenRewardChat}
+            disabled={!onOpenRewardChat}
+          >
             보상받기
           </Button>
         ) : null}
-        <Button type="button" onClick={onRestart}>
+        <Button
+          className="result-primary-action result-primary-action--restart"
+          type="button"
+          onClick={onRestart}
+        >
           다시 판독하기
         </Button>
       </div>
 
       {!isSafetyResult ? (
-        <section
-          className="result-section result-comments-board"
-          aria-labelledby="comments-title"
-        >
+        <button className="result-objection-cta" type="button">
+          억울하면 유사 판례로 한 번 더 따져보기
+        </button>
+      ) : null}
+
+      {!isSafetyResult ? (
+        <section className="result-comments-board" aria-label="판정 댓글">
           <div className="result-comments-board__title-row">
-            <h2 id="comments-title">
+            <h2>
               <strong>{comments.length}</strong>개의 댓글
             </h2>
             <button
-              className={hasLiked ? "is-liked" : ""}
               type="button"
+              onClick={handleLike}
+              className={hasLiked ? "is-liked" : ""}
               aria-pressed={hasLiked}
               disabled={isReactionPending}
-              onClick={handleLike}
             >
-              추천 {likeCount}
+              선넘었어요 {likeCount}
             </button>
           </div>
+          <h3>댓글쓰기</h3>
           <form className="result-comment-form" onSubmit={handleCommentSubmit}>
-            <div className="result-comment-form__identity">
-              <label htmlFor="result-comment-writer">댓글쓰기</label>
-              <input
-                id="result-comment-writer"
-                readOnly
-                value="익명"
-                aria-label="댓글 작성자"
-              />
-            </div>
-            <label className="sr-only" htmlFor="result-comment">
-              판독 결과 댓글
-            </label>
-            <div className="result-comment-form__body">
-              <textarea
-                id="result-comment"
-                value={commentDraft}
-                maxLength={120}
-                placeholder="타인을 배려하는 마음을 담아 댓글을 남겨주세요."
-                onChange={(event) => {
-                  setCommentDraft(event.currentTarget.value);
-                  setCommentMessage(null);
-                }}
-              />
-              <button
-                type="submit"
-                disabled={commentDraft.trim().length === 0 || isReactionPending}
-              >
-                등록
-              </button>
-            </div>
+            <textarea
+              aria-label="판정 댓글"
+              value={commentDraft}
+              placeholder="타인을 배려하는 마음을 담아 댓글을 남겨주세요."
+              onChange={(event) => {
+                setCommentDraft(event.currentTarget.value);
+                setCommentMessage(null);
+              }}
+            />
+            <button
+              type="submit"
+              disabled={commentDraft.trim().length === 0 || isReactionPending}
+            >
+              등록
+            </button>
           </form>
           {commentMessage ? (
             <p className="result-share-status" role="alert">
               {commentMessage}
             </p>
           ) : null}
-          <div className="result-comment-tabs" aria-label="댓글 정렬">
-            <button type="button" aria-pressed="true">최신순</button>
-            <button type="button" aria-pressed="false">추천순</button>
-          </div>
-          {comments.length > 0 ? (
-            <ol className="result-comments">
-              {comments.map((comment, index) => (
-                <li key={comment.id}>
-                  <div className="result-comment-meta">
-                    <strong>익명 {comments.length - index}</strong>
-                    <span>방금</span>
-                  </div>
-                  <p>{comment.body}</p>
-                  <div className="result-comment-actions" aria-label="댓글 반응">
-                    <span>답글 0개</span>
-                    <span>추천 0</span>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          ) : (
+          <ol className="result-comments">
+            {comments.map((comment) => (
+              <li key={comment.id}>
+                <p>{comment.body}</p>
+              </li>
+            ))}
+          </ol>
+          {comments.length === 0 ? (
             <p className="result-comments-empty">
               아직 댓글이 없어요. 판독 결과에 한마디를 남겨보세요.
             </p>
-          )}
-          <div className="result-comments-board__share-row">
-            <button
-              className="result-share-button"
-              type="button"
-              disabled={isReactionPending}
-              onClick={handleShare}
-            >
-              판독 결과 공유하기
-            </button>
-            {shareMessage ? <p className="result-share-status">{shareMessage}</p> : null}
-          </div>
+          ) : null}
+          <button
+            className="result-share-button"
+            type="button"
+            disabled={isReactionPending}
+            onClick={handleShare}
+          >
+            판정 공유하기
+          </button>
+          {shareMessage ? <p className="result-share-status">{shareMessage}</p> : null}
         </section>
       ) : null}
     </main>
