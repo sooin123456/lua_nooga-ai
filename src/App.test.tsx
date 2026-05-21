@@ -491,7 +491,8 @@ describe("App text review flow", () => {
     expect(screen.getByText("루아 보상 상담소")).toBeInTheDocument();
     await user.type(screen.getByRole("textbox", { name: "받고 싶은 보상" }), "달달한 거");
     await user.click(screen.getByRole("button", { name: "루아에게 골라달라 하기" }));
-    expect(screen.getByText("가벼운 사과템")).toBeInTheDocument();
+    expect(screen.getAllByText("5천원대")).toHaveLength(2);
+    expect(screen.getByText("1만원 이하")).toBeInTheDocument();
     expect(screen.getByText("잘못 정도별 토스 상품 추천")).toBeInTheDocument();
     expect(screen.getByText("확실한 사과")).toBeInTheDocument();
 
