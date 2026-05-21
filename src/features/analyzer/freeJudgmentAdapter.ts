@@ -41,18 +41,53 @@ function createAnonymousUserKey() {
   return `anon-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function getLocalStorage() {
+  try {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    return window.localStorage;
+  } catch {
+    return undefined;
+  }
+}
+
 function getAnonymousUserKey() {
-  const storage = globalThis.localStorage;
-  const existingKey = storage.getItem(anonymousUserKeyStorageKey);
+  const storage = getLocalStorage();
+  let existingKey: string | null = null;
+
+  try {
+    existingKey = storage?.getItem(anonymousUserKeyStorageKey) ?? null;
+  } catch {
+    existingKey = null;
+  }
 
   if (existingKey) {
     return existingKey;
   }
 
   const anonymousUserKey = createAnonymousUserKey();
-  storage.setItem(anonymousUserKeyStorageKey, anonymousUserKey);
+
+  try {
+    storage?.setItem(anonymousUserKeyStorageKey, anonymousUserKey);
+  } catch {
+    // Storage can be unavailable in private WebViews; keep the in-memory key.
+  }
 
   return anonymousUserKey;
+}
+
+async function parseJsonPayload(response: Response) {
+  try {
+    return (await response.json()) as {
+      result?: JudgmentResult;
+      remainingFreeUses?: number;
+      message?: string;
+    };
+  } catch {
+    return {};
+  }
 }
 
 export async function analyzeWithAi({
@@ -72,11 +107,7 @@ export async function analyzeWithAi({
       }),
     });
 
-    const payload = (await response.json()) as {
-      result?: JudgmentResult;
-      remainingFreeUses?: number;
-      message?: string;
-    };
+    const payload = await parseJsonPayload(response);
 
     if (response.status === 429) {
       return {

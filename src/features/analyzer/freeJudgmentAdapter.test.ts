@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { analyzeWithAi } from "./freeJudgmentAdapter";
 import type { JudgmentResult } from "./types";
 
@@ -15,6 +15,10 @@ const aiResult: JudgmentResult = {
 describe("analyzeWithAi", () => {
   beforeEach(() => {
     localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("returns server AI result when API succeeds", async () => {
@@ -47,11 +51,64 @@ describe("analyzeWithAi", () => {
     });
   });
 
+  it("returns server AI result when localStorage access throws", async () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("storage unavailable");
+    });
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("storage unavailable");
+    });
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ result: aiResult, remainingFreeUses: 1 }),
+    });
+
+    const result = await analyzeWithAi({
+      text: "A: 미안\nB: 괜찮아",
+      userPerspective: "first",
+      fetcher,
+    });
+
+    expect(result).toEqual({
+      status: "ready",
+      result: aiResult,
+      remainingFreeUses: 1,
+    });
+    expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual({
+      text: "A: 미안\nB: 괜찮아",
+      userPerspective: "first",
+      anonymousUserKey: expect.any(String),
+    });
+  });
+
   it("returns limited status when daily quota is exhausted", async () => {
     const fetcher = vi.fn().mockResolvedValue({
       ok: false,
       status: 429,
       json: async () => ({ message: "오늘 무료 판독을 모두 사용했어요." }),
+    });
+
+    const result = await analyzeWithAi({
+      text: "A: 왜 그래",
+      userPerspective: "unknown",
+      fetcher,
+    });
+
+    expect(result).toEqual({
+      status: "limited",
+      message: "오늘 무료 판독을 모두 사용했어요.",
+      remainingFreeUses: 0,
+    });
+  });
+
+  it("returns limited status with default message when quota response JSON is invalid", async () => {
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      json: async () => {
+        throw new Error("invalid json");
+      },
     });
 
     const result = await analyzeWithAi({
