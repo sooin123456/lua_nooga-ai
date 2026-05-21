@@ -32,6 +32,17 @@ const participantB: RoomParticipant = {
   joinedAt: "2026-05-20T12:00:02.000Z",
 };
 
+const roomMessages: RoomMessage[] = [
+  {
+    id: "m1",
+    roomId: "room-1",
+    author: "B",
+    nickname: "친구",
+    body: "미안해. 다시 말할게.",
+    createdAt: "2026-05-20T12:00:12.000Z",
+  },
+];
+
 describe("RoomScreen", () => {
   it("asks for a nickname before entering the room", async () => {
     const user = userEvent.setup();
@@ -60,6 +71,7 @@ describe("RoomScreen", () => {
     expect(onJoinRoom).toHaveBeenCalledWith({ nickname: "수인" });
     expect(screen.getByText(/A와 B가 모두 입장하면/)).toBeInTheDocument();
     expect(screen.getByText("대기")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "지금 판정하기" })).toBeDisabled();
   });
 
   it("lets participants add messages before the room explodes", async () => {
@@ -130,7 +142,66 @@ describe("RoomScreen", () => {
     expect(onSendMessage).not.toHaveBeenCalled();
   });
 
-  it("warns when the countdown is almost over", () => {
+  it("keeps the explode action disabled for spectators even when messages exist", () => {
+    const spectator: RoomParticipant = {
+      id: "p3",
+      roomId: "room-1",
+      role: "spectator",
+      nickname: "구경꾼",
+      clientKey: "client-c",
+      joinedAt: "2026-05-20T12:00:03.000Z",
+    };
+
+    render(
+      <RoomScreen
+        currentParticipant={spectator}
+        errorMessage={null}
+        isExploding={false}
+        isLoading={false}
+        messages={roomMessages}
+        participants={[participantA, participantB, spectator]}
+        remainingSeconds={42}
+        room={room}
+        onBack={vi.fn()}
+        onExplodeNow={vi.fn()}
+        onJoinRoom={vi.fn()}
+        onSendMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "지금 판정하기" })).toBeDisabled();
+  });
+
+  it("lets active participants explode a started room with messages", async () => {
+    const user = userEvent.setup();
+    const onExplodeNow = vi.fn();
+
+    render(
+      <RoomScreen
+        currentParticipant={participantA}
+        errorMessage={null}
+        isExploding={false}
+        isLoading={false}
+        messages={roomMessages}
+        participants={[participantA, participantB]}
+        remainingSeconds={42}
+        room={room}
+        onBack={vi.fn()}
+        onExplodeNow={onExplodeNow}
+        onJoinRoom={vi.fn()}
+        onSendMessage={vi.fn()}
+      />,
+    );
+
+    const explodeButton = screen.getByRole("button", { name: "지금 판정하기" });
+    expect(explodeButton).toBeEnabled();
+
+    await user.click(explodeButton);
+
+    expect(onExplodeNow).toHaveBeenCalledOnce();
+  });
+
+  it("warns when the countdown is almost over but not closed", () => {
     render(
       <RoomScreen
         currentParticipant={participantA}
@@ -148,28 +219,38 @@ describe("RoomScreen", () => {
       />,
     );
 
-    expect(screen.getByText("루아가 망치를 들었어요.")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("루아가 망치를 들었어요.");
+  });
+
+  it("does not show the countdown warning after the room closes", () => {
+    render(
+      <RoomScreen
+        currentParticipant={participantA}
+        errorMessage={null}
+        isExploding={false}
+        isLoading={false}
+        messages={roomMessages}
+        participants={[participantA, participantB]}
+        remainingSeconds={0}
+        room={room}
+        onBack={vi.fn()}
+        onExplodeNow={vi.fn()}
+        onJoinRoom={vi.fn()}
+        onSendMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText("루아가 망치를 들었어요.")).not.toBeInTheDocument();
   });
 
   it("shows the explosion state when the countdown reaches zero", () => {
-    const messages: RoomMessage[] = [
-      {
-        id: "m1",
-        roomId: "room-1",
-        author: "B",
-        nickname: "친구",
-        body: "미안해. 다시 말할게.",
-        createdAt: "2026-05-20T12:00:12.000Z",
-      },
-    ];
-
     render(
       <RoomScreen
         currentParticipant={participantA}
         errorMessage={null}
         isExploding
         isLoading={false}
-        messages={messages}
+        messages={roomMessages}
         participants={[participantA, participantB]}
         remainingSeconds={0}
         room={room}

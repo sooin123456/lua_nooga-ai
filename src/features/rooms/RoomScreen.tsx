@@ -41,11 +41,12 @@ export function RoomScreen({
   const [body, setBody] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const isCountdownStarted = Boolean(room?.startedAt);
-  const isCountdownHot = isCountdownStarted && remainingSeconds <= 5;
   const isSpectator = currentParticipant?.role === "spectator";
   const isRoomClosed =
     !room || room.status === "exploded" || (isCountdownStarted && remainingSeconds === 0);
   const canChat = Boolean(currentParticipant && !isSpectator && !isRoomClosed);
+  const canExplode = Boolean(canChat && isCountdownStarted && messages.length > 0 && !isExploding);
+  const isCountdownHot = isCountdownStarted && !isRoomClosed && remainingSeconds > 0 && remainingSeconds <= 5;
 
   const submitNickname = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -129,7 +130,9 @@ export function RoomScreen({
           </p>
         ) : null}
         {isCountdownHot ? (
-          <p className="room-countdown-warning">루아가 망치를 들었어요.</p>
+          <p className="room-countdown-warning" role="status">
+            루아가 망치를 들었어요.
+          </p>
         ) : null}
 
         {room && !currentParticipant ? (
@@ -209,7 +212,7 @@ export function RoomScreen({
         <button
           className="room-explode-button"
           type="button"
-          disabled={isExploding || !isCountdownStarted || messages.length === 0}
+          disabled={!canExplode}
           onClick={onExplodeNow}
         >
           지금 판정하기
