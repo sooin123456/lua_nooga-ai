@@ -1141,7 +1141,7 @@
 
 .reward-chat-screen {
   gap: 12px;
-  padding-bottom: 92px;
+  padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
   background: #ffffff;
 }
 
@@ -1336,33 +1336,6 @@
   transform: rotate(-45deg);
 }
 
-.reward-composer-lead {
-  margin: 0;
-  color: #191f28;
-  font-size: 15px;
-  font-weight: 1000;
-  line-height: 1.35;
-}
-
-.reward-composer-summary {
-  display: grid;
-  gap: 4px;
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #f7f3ff;
-  color: #4e5968;
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1.35;
-}
-
-.reward-composer-summary strong {
-  color: #8a48e6;
-  font-size: 12px;
-  font-weight: 1000;
-}
-
 .reward-candidate-list {
   display: grid;
   gap: 10px;
@@ -1430,39 +1403,10 @@
   overflow-wrap: anywhere;
 }
 
-.reward-inquiry-message {
-  display: grid;
-  gap: 8px;
-  padding: 12px;
-  border: 1px solid #e5e8eb;
-  border-radius: 8px;
-  background: #ffffff;
-}
-
-.reward-inquiry-message span {
-  color: #8a48e6;
-  font-size: 12px;
-  font-weight: 1000;
-}
-
-.reward-inquiry-message textarea {
-  min-height: 136px;
-  box-sizing: border-box;
-  padding: 0;
-  border: 0;
-  resize: none;
-  background: transparent;
-  color: #191f28;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 750;
-  line-height: 1.45;
-}
-
 .reward-composer-cta {
   position: fixed;
   right: max(16px, calc((100vw - 430px) / 2 + 16px));
-  bottom: 18px;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
   left: max(16px, calc((100vw - 430px) / 2 + 16px));
   z-index: 10;
   min-height: 52px;

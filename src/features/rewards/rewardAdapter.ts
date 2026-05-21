@@ -38,6 +38,12 @@ export type RewardChatRecommendation = RewardRecommendation & {
   candidates: readonly [RewardCandidate, RewardCandidate, RewardCandidate];
 };
 
+type RewardTier = {
+  severity: RewardSeverity;
+  severityLabel: string;
+  prices: readonly [string, string, string];
+};
+
 const rewardRules: Array<{
   category: RewardCategory;
   keywords: string[];
@@ -131,25 +137,10 @@ export function createRewardRecommendation(wish: string): RewardRecommendation {
   };
 }
 
-export function getRewardSeverity(blamePercent: number): RewardSeverity {
-  if (blamePercent >= 90) {
-    return "legend";
-  }
-
-  if (blamePercent >= 75) {
-    return "serious";
-  }
-
-  if (blamePercent >= 60) {
-    return "fair";
-  }
-
-  return "light";
-}
-
-function getRewardPriceBand(blamePercent: number) {
+function getRewardTier(blamePercent: number): RewardTier {
   if (blamePercent >= 80) {
     return {
+      severity: "serious",
       severityLabel: "확실한 사과가 필요한 판정",
       prices: ["1~2만원대", "3만원대", "3만원 이상"],
     };
@@ -157,15 +148,21 @@ function getRewardPriceBand(blamePercent: number) {
 
   if (blamePercent >= 60) {
     return {
+      severity: "fair",
       severityLabel: "적정 보상이 어울리는 판정",
       prices: ["5천원대", "1~2만원대", "2만원대"],
     };
   }
 
   return {
+    severity: "light",
     severityLabel: "가벼운 사과로 충분한 판정",
     prices: ["5천원대", "5천원대", "1만원 이하"],
   };
+}
+
+export function getRewardSeverity(blamePercent: number): RewardSeverity {
+  return getRewardTier(blamePercent).severity;
 }
 
 function getLuaMessage({
@@ -184,7 +181,7 @@ function getLuaMessage({
   }
 
   if (severity === "serious") {
-    return `${blamedParty}가 ${blamePercent}% 선넘었어요. 말로만 미안하다고 넘기기엔 조금 큽니다. ${category} 쪽으로 마음을 보여줘야 해요.`;
+    return `${blamedParty}가 ${blamePercent}% 선넘었어요. 말로만 미안하다고 넘기기엔 커요. ${category} 쪽으로 확실한 사과가 필요해요.`;
   }
 
   if (severity === "fair") {
@@ -206,8 +203,7 @@ export function createRewardChatRecommendation({
   const recommendation = createRewardRecommendation(wish);
   const blamedParty = partyAPercent >= partyBPercent ? "A" : "B";
   const blamePercent = Math.max(partyAPercent, partyBPercent);
-  const severity = getRewardSeverity(blamePercent);
-  const priceBand = getRewardPriceBand(blamePercent);
+  const rewardTier = getRewardTier(blamePercent);
   const [firstTerm, secondTerm, thirdTerm] = recommendation.searchTerms;
   const candidates = [
     {
@@ -215,7 +211,7 @@ export function createRewardChatRecommendation({
       title: firstTerm,
       query: firstTerm,
       shoppingUrl: createShoppingSearchUrl(firstTerm),
-      priceHint: priceBand.prices[0],
+      priceHint: rewardTier.prices[0],
       message: "가볍게 풀 수 있는 정도의 토스 상품이에요.",
     },
     {
@@ -223,7 +219,7 @@ export function createRewardChatRecommendation({
       title: secondTerm,
       query: secondTerm,
       shoppingUrl: createShoppingSearchUrl(secondTerm),
-      priceHint: priceBand.prices[1],
+      priceHint: rewardTier.prices[1],
       message: "잘못 정도와 부담감을 맞춘 중간 보상이에요.",
     },
     {
@@ -231,7 +227,7 @@ export function createRewardChatRecommendation({
       title: thirdTerm,
       query: thirdTerm,
       shoppingUrl: createShoppingSearchUrl(thirdTerm),
-      priceHint: priceBand.prices[2],
+      priceHint: rewardTier.prices[2],
       message: "상대가 아직 서운할 때 확실히 마음을 보여주는 상품이에요.",
     },
   ] as const;
@@ -240,13 +236,13 @@ export function createRewardChatRecommendation({
     ...recommendation,
     blamedParty,
     blamePercent,
-    severity,
-    severityLabel: priceBand.severityLabel,
+    severity: rewardTier.severity,
+    severityLabel: rewardTier.severityLabel,
     luaMessage: getLuaMessage({
       blamedParty,
       blamePercent,
       category: recommendation.category,
-      severity,
+      severity: rewardTier.severity,
     }),
     candidates,
   };

@@ -144,14 +144,76 @@ describe("createRewardChatRecommendation", () => {
     expect(recommendation.severity).toBe("serious");
     expect(recommendation.severityLabel).toBe("확실한 사과가 필요한 판정");
   });
+
+  it.each([
+    [
+      59,
+      "light",
+      "가벼운 사과로 충분한 판정",
+      ["5천원대", "5천원대", "1만원 이하"],
+      "가볍게 웃으면서 풀 수 있는",
+    ],
+    [
+      60,
+      "fair",
+      "적정 보상이 어울리는 판정",
+      ["5천원대", "1~2만원대", "2만원대"],
+      "분위기 풀기엔",
+    ],
+    [
+      79,
+      "fair",
+      "적정 보상이 어울리는 판정",
+      ["5천원대", "1~2만원대", "2만원대"],
+      "분위기 풀기엔",
+    ],
+    [
+      80,
+      "serious",
+      "확실한 사과가 필요한 판정",
+      ["1~2만원대", "3만원대", "3만원 이상"],
+      "확실한 사과가 필요해요",
+    ],
+    [
+      89,
+      "serious",
+      "확실한 사과가 필요한 판정",
+      ["1~2만원대", "3만원대", "3만원 이상"],
+      "확실한 사과가 필요해요",
+    ],
+    [
+      90,
+      "serious",
+      "확실한 사과가 필요한 판정",
+      ["1~2만원대", "3만원대", "3만원 이상"],
+      "확실한 사과가 필요해요",
+    ],
+  ] as const)(
+    "keeps reward tier output aligned at %s percent",
+    (percent, severity, severityLabel, prices, luaMessage) => {
+      const recommendation = createRewardChatRecommendation({
+        wish: "커피",
+        partyAPercent: percent,
+        partyBPercent: 100 - percent,
+      });
+
+      expect(recommendation.severity).toBe(severity);
+      expect(recommendation.severityLabel).toBe(severityLabel);
+      expect(recommendation.candidates.map((candidate) => candidate.priceHint)).toEqual(
+        prices,
+      );
+      expect(recommendation.luaMessage).toContain(luaMessage);
+    },
+  );
 });
 
 describe("getRewardSeverity", () => {
   it.each([
     [50, "light"],
     [60, "fair"],
-    [75, "serious"],
-    [90, "legend"],
+    [79, "fair"],
+    [80, "serious"],
+    [90, "serious"],
   ] as const)("maps %s percent to %s", (percent, severity) => {
     expect(getRewardSeverity(percent)).toBe(severity);
   });
