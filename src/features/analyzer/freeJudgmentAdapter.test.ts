@@ -82,6 +82,34 @@ describe("analyzeWithAi", () => {
     });
   });
 
+  it("returns server AI result when localStorage is unavailable", async () => {
+    vi.spyOn(window, "localStorage", "get").mockImplementation(() => {
+      throw new Error("localStorage unavailable");
+    });
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ result: aiResult, remainingFreeUses: 1 }),
+    });
+
+    const result = await analyzeWithAi({
+      text: "A: 미안\nB: 괜찮아",
+      userPerspective: "first",
+      fetcher,
+    });
+
+    expect(result).toEqual({
+      status: "ready",
+      result: aiResult,
+      remainingFreeUses: 1,
+    });
+    expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual({
+      text: "A: 미안\nB: 괜찮아",
+      userPerspective: "first",
+      anonymousUserKey: expect.any(String),
+    });
+  });
+
   it("returns limited status when daily quota is exhausted", async () => {
     const fetcher = vi.fn().mockResolvedValue({
       ok: false,
