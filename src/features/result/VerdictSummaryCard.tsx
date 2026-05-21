@@ -14,7 +14,7 @@ export function VerdictSummaryCard({
   return (
     <div className="verdict-summary-card">
       <div>
-        <p>오늘의 판독</p>
+        <p>오늘의 판정</p>
         <strong>{verdict}</strong>
       </div>
       {children}

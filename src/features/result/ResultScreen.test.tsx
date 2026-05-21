@@ -166,6 +166,26 @@ describe("ResultScreen", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("does not show comment, share, or objection actions for safety results", () => {
+    renderResultScreen(
+      <ResultScreen
+        result={{ ...result, safetyLevel: "caution" }}
+        resultShareService={null}
+        onRestart={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText("댓글쓰기")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "판정 공유하기" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: /억울하면 유사 판례로 한 번 더 따져보기/,
+      }),
+    ).not.toBeInTheDocument();
+  });
+
   it("supports lightweight likes, comments, and sharing", async () => {
     const user = userEvent.setup();
     const writeText = vi.fn().mockResolvedValue(undefined);
