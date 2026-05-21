@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import App from "./App";
+import { analyzeWithAi } from "./features/analyzer/freeJudgmentAdapter";
 import { analyzeWithRules } from "./features/analyzer/ruleBasedAnalyzer";
 import {
   extractTextFromImage,
@@ -11,6 +12,10 @@ import {
 
 vi.mock("./features/analyzer/ruleBasedAnalyzer", () => ({
   analyzeWithRules: vi.fn(),
+}));
+
+vi.mock("./features/analyzer/freeJudgmentAdapter", () => ({
+  analyzeWithAi: vi.fn(),
 }));
 
 vi.mock("./features/ocr/ocrAdapter", () => ({
@@ -424,10 +429,10 @@ describe("App text review flow", () => {
   it("keeps home visible when a stale analysis resolves after going back", async () => {
     const user = userEvent.setup();
     let resolveAnalyze: (
-      value: Awaited<ReturnType<typeof analyzeWithRules>>,
+      value: Awaited<ReturnType<typeof analyzeWithAi>>,
     ) => void = () => undefined;
 
-    vi.mocked(analyzeWithRules).mockReturnValue(
+    vi.mocked(analyzeWithAi).mockReturnValue(
       new Promise((resolve) => {
         resolveAnalyze = resolve;
       }),
@@ -444,12 +449,15 @@ describe("App text review flow", () => {
     await user.click(screen.getByRole("button", { name: "돌아가기" }));
 
     resolveAnalyze({
-      verdict: "A가 55% 선넘었어요",
-      partyAPercent: 55,
-      partyBPercent: 45,
-      reasons: ["첫 번째 이유", "두 번째 이유", "세 번째 이유"],
-      advice: "천천히 다시 이야기해 보세요.",
-      safetyLevel: "normal",
+      status: "ready",
+      result: {
+        verdict: "A가 55% 선넘었어요",
+        partyAPercent: 55,
+        partyBPercent: 45,
+        reasons: ["첫 번째 이유", "두 번째 이유", "세 번째 이유"],
+        advice: "천천히 다시 이야기해 보세요.",
+        safetyLevel: "normal",
+      },
     });
 
     await waitFor(() => {
@@ -461,13 +469,16 @@ describe("App text review flow", () => {
 
   it("shows free verdict result with reward recommendations and no precedent panel", async () => {
     const user = userEvent.setup();
-    vi.mocked(analyzeWithRules).mockResolvedValue({
-      verdict: "A가 55% 선넘었어요",
-      partyAPercent: 55,
-      partyBPercent: 45,
-      reasons: ["첫 번째 이유", "두 번째 이유", "세 번째 이유"],
-      advice: "천천히 다시 이야기해 보세요.",
-      safetyLevel: "normal",
+    vi.mocked(analyzeWithAi).mockResolvedValue({
+      status: "ready",
+      result: {
+        verdict: "A가 55% 선넘었어요",
+        partyAPercent: 55,
+        partyBPercent: 45,
+        reasons: ["첫 번째 이유", "두 번째 이유", "세 번째 이유"],
+        advice: "천천히 다시 이야기해 보세요.",
+        safetyLevel: "normal",
+      },
     });
 
     await renderAppHome(user);
@@ -483,6 +494,10 @@ describe("App text review flow", () => {
       screen.getByRole("button", { name: /무료\s*판독\s*받기/ }),
     );
 
+    expect(analyzeWithAi).toHaveBeenCalledWith({
+      text: expect.any(String),
+      userPerspective: "unknown",
+    });
     expect(await screen.findByText("오늘의 판정")).toBeInTheDocument();
     expect(screen.getByLabelText("A 55%, B 45%")).toBeInTheDocument();
     expect(screen.getByText("증거 1")).toBeInTheDocument();
@@ -498,6 +513,37 @@ describe("App text review flow", () => {
     await user.click(screen.getByRole("button", { name: "홈으로 돌아가기" }));
     expect(await screen.findByRole("button", { name: "최근 판정" })).toBeInTheDocument();
     expect(screen.queryByText("억울하면 판례로 다시 따지기")).not.toBeInTheDocument();
+  });
+
+  it("stays on review and shows the limited message when free AI use is exhausted", async () => {
+    const user = userEvent.setup();
+    vi.mocked(analyzeWithAi).mockResolvedValue({
+      status: "limited",
+      message: "오늘 무료 판독을 모두 사용했어요.",
+      remainingFreeUses: 0,
+    });
+
+    await renderAppHome(user);
+
+    await user.click(
+      screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "나는 첫 번째 사람이에요" }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: /무료\s*판독\s*받기/ }),
+    );
+
+    expect(analyzeWithAi).toHaveBeenCalledWith({
+      text: expect.any(String),
+      userPerspective: "first",
+    });
+    expect(
+      await screen.findByText("오늘 무료 판독을 모두 사용했어요."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("증거 확인")).toBeInTheDocument();
+    expect(screen.queryByText("오늘의 판정")).not.toBeInTheDocument();
   });
 
   it("shows a manual transcription message when starting the recording flow", async () => {

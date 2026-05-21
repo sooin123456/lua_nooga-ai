@@ -2,8 +2,9 @@ import type { ChangeEvent, ClipboardEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Top } from "@toss/tds-mobile";
 import "./App.css";
+import { analyzeWithAi } from "./features/analyzer/freeJudgmentAdapter";
 import { analyzeWithRules } from "./features/analyzer/ruleBasedAnalyzer";
-import type { JudgmentResult } from "./features/analyzer/types";
+import type { JudgmentResult, UserPerspective } from "./features/analyzer/types";
 import {
   manualTranscriptionAdapter,
   type TranscriptionSource,
@@ -1047,15 +1048,28 @@ function App() {
     );
   };
 
-  const handleAnalyze = async (text: string, reviewId: number) => {
-    const result = await analyzeWithRules({ text });
+  const handleAnalyze = async (
+    text: string,
+    userPerspective: UserPerspective,
+    reviewId: number,
+  ) => {
+    const aiJudgment = await analyzeWithAi({ text, userPerspective });
 
     if (reviewId !== activeReviewIdRef.current) {
       return;
     }
 
+    if (aiJudgment.status === "limited") {
+      setState((currentState) =>
+        currentState.screen === "review" && currentState.reviewId === reviewId
+          ? { ...currentState, helperText: aiJudgment.message }
+          : currentState,
+      );
+      return;
+    }
+
     revokeScreenshotPreviewUrl();
-    setState({ screen: "result", result, sourceText: text });
+    setState({ screen: "result", result: aiJudgment.result, sourceText: text });
   };
 
   const renderMediaControl = () => {
@@ -1096,7 +1110,9 @@ function App() {
             ? (event) => handleScreenshotPaste(event, state.reviewId)
             : undefined
         }
-        onAnalyze={(text) => handleAnalyze(text, state.reviewId)}
+        onAnalyze={(text, userPerspective) =>
+          handleAnalyze(text, userPerspective, state.reviewId)
+        }
         onBack={goHome}
       />
     );

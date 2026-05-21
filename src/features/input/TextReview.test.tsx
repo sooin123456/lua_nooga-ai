@@ -104,7 +104,30 @@ describe("TextReview", () => {
     await user.type(textarea, "  A: 미안해\nB: 다시 이야기하자  ");
     await user.click(screen.getByRole("button", { name: "무료 판독 받기" }));
 
-    expect(onAnalyze).toHaveBeenCalledWith("A: 미안해\nB: 다시 이야기하자");
+    expect(onAnalyze).toHaveBeenCalledWith(
+      "A: 미안해\nB: 다시 이야기하자",
+      "unknown",
+    );
+  });
+
+  it("submits the selected first-person perspective", async () => {
+    const user = userEvent.setup();
+    const onAnalyze = vi.fn();
+
+    renderTextReview(
+      <TextReview
+        initialText="A: 미안해"
+        onAnalyze={onAnalyze}
+        onBack={vi.fn()}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "나는 첫 번째 사람이에요" }),
+    );
+    await user.click(screen.getByRole("button", { name: "무료 판독 받기" }));
+
+    expect(onAnalyze).toHaveBeenCalledWith("A: 미안해", "first");
   });
 
   it("prevents duplicate submits while analysis is pending", async () => {

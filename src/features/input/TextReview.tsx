@@ -1,6 +1,7 @@
 import { Button } from "@toss/tds-mobile";
 import type { ClipboardEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import type { UserPerspective } from "../analyzer/types";
 
 type TextReviewProps = {
   initialText: string;
@@ -9,7 +10,10 @@ type TextReviewProps = {
   helperText?: string;
   mediaControl?: ReactNode;
   onPaste?: (event: ClipboardEvent<HTMLElement>) => void;
-  onAnalyze(text: string): void | Promise<void>;
+  onAnalyze(
+    text: string,
+    userPerspective: UserPerspective,
+  ): void | Promise<void>;
   onBack(): void;
 };
 
@@ -30,6 +34,8 @@ export function TextReview({
   const [error, setError] = useState("");
   const [isPending, setIsPending] = useState(false);
   const [hasUserEditedDraft, setHasUserEditedDraft] = useState(false);
+  const [userPerspective, setUserPerspective] =
+    useState<UserPerspective>("unknown");
   const isMountedRef = useRef(true);
   const lastInitialTextRef = useRef(initialText);
   const lastInitialTextSyncKeyRef = useRef(initialTextSyncKey);
@@ -80,7 +86,7 @@ export function TextReview({
     setIsPending(true);
 
     try {
-      await onAnalyze(trimmedText);
+      await onAnalyze(trimmedText, userPerspective);
     } catch {
       if (isMountedRef.current) {
         setError(submitFailureMessage);
@@ -144,6 +150,34 @@ export function TextReview({
           </p>
         ) : null}
       </section>
+
+      <div
+        className="perspective-selector"
+        aria-label="내가 누구인지 선택"
+        title="이 대화에서 나는 누구예요?"
+      >
+        <button
+          type="button"
+          aria-pressed={userPerspective === "first"}
+          onClick={() => setUserPerspective("first")}
+        >
+          나는 첫 번째 사람이에요
+        </button>
+        <button
+          type="button"
+          aria-pressed={userPerspective === "second"}
+          onClick={() => setUserPerspective("second")}
+        >
+          나는 두 번째 사람이에요
+        </button>
+        <button
+          type="button"
+          aria-pressed={userPerspective === "unknown"}
+          onClick={() => setUserPerspective("unknown")}
+        >
+          잘 모르겠어요
+        </button>
+      </div>
 
       <div className="action-row">
         <Button type="button" disabled={isPending} onClick={handleSubmit}>
