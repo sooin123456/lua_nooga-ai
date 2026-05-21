@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { InputHome } from "./InputHome";
@@ -212,10 +212,25 @@ describe("InputHome", () => {
     await user.click(screen.getByRole("button", { name: "핫 Battle" }));
     await user.click(screen.getAllByRole("button", { name: "댓글달기" })[0]);
 
+    const summaryTitle = screen.getByRole("heading", {
+      name: "연락 늦게 봤다 vs 말투가 셌다",
+    });
+    const summaryArticle = summaryTitle.closest("article");
     const conversationHeading = screen.getByRole("heading", { name: "대화 내용" });
     const verdictHeading = screen.getByRole("heading", { name: "루아 판정" });
     const commentsHeading = screen.getByRole("heading", { name: "댓글쓰기" });
 
+    expect(summaryArticle).not.toBeNull();
+    if (!summaryArticle) {
+      throw new Error("Expected hot Battle summary article to exist");
+    }
+    expect(within(summaryArticle).getByText("1위")).toBeInTheDocument();
+    expect(within(summaryArticle).getByText("댓글 8")).toBeInTheDocument();
+    expect(within(summaryArticle).getByText("좋아요 21")).toBeInTheDocument();
+    expect(
+      summaryArticle.compareDocumentPosition(conversationHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(
       conversationHeading.compareDocumentPosition(verdictHeading) &
         Node.DOCUMENT_POSITION_FOLLOWING,
