@@ -53,6 +53,16 @@ describe("Lua court intro", () => {
     localStorage.clear();
     render(<App />);
 
+    expect(
+      screen.getByRole("heading", {
+        name: "루아 법정에 오신 걸 환영해요",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "증거를 제출하세요. 누가 선 넘었는지 루아가 판독해드릴게요.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText(/증거를 제출하세요/)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "판정 시작하기" }));
@@ -68,6 +78,47 @@ describe("Lua court intro", () => {
 
     expect(screen.queryByText(/증거를 제출하세요/)).not.toBeInTheDocument();
     expect(screen.getByText("루아 AI")).toBeInTheDocument();
+  });
+
+  it("shows the Lua court intro when intro storage cannot be read", () => {
+    const getItem = vi
+      .spyOn(Storage.prototype, "getItem")
+      .mockImplementation(() => {
+        throw new DOMException("Blocked", "SecurityError");
+      });
+
+    try {
+      render(<App />);
+
+      expect(
+        screen.getByRole("heading", {
+          name: "루아 법정에 오신 걸 환영해요",
+        }),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/증거를 제출하세요/)).toBeInTheDocument();
+    } finally {
+      getItem.mockRestore();
+    }
+  });
+
+  it("enters home when intro completion cannot be saved", async () => {
+    const setItem = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new DOMException("Blocked", "SecurityError");
+      });
+
+    try {
+      render(<App />);
+
+      await userEvent.click(
+        screen.getByRole("button", { name: "판정 시작하기" }),
+      );
+
+      expect(screen.getByText("루아 AI")).toBeInTheDocument();
+    } finally {
+      setItem.mockRestore();
+    }
   });
 });
 

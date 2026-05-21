@@ -109,7 +109,11 @@ function hasCompletedIntro() {
     return false;
   }
 
-  return window.localStorage.getItem(introCompleteStorageKey) === "true";
+  try {
+    return window.localStorage.getItem(introCompleteStorageKey) === "true";
+  } catch {
+    return false;
+  }
 }
 
 function markIntroComplete() {
