@@ -10,7 +10,6 @@ import type { ResultComment } from "../resultShare/types";
 import { moderatePublicComment } from "../safety/safety";
 import { AnimatedPercentBar } from "./AnimatedPercentBar";
 import { ResultReasonCard } from "./ResultReasonCard";
-import { VerdictSummaryCard } from "./VerdictSummaryCard";
 
 type ResultScreenProps = {
   result: JudgmentResult;
@@ -238,13 +237,21 @@ export function ResultScreen({
       >
         {isSafetyResult ? <p className="result-safety-badge">{safetyLabel}</p> : null}
 
-        <h2 className="sr-only">오늘의 판정</h2>
-        <VerdictSummaryCard isSafetyResult={isSafetyResult} verdict={result.verdict}>
+        <div className="verdict-summary-card">
+          <div>
+            <p>오늘의 판정</p>
+            <strong>{result.verdict}</strong>
+          </div>
           <AnimatedPercentBar
             partyAPercent={result.partyAPercent}
             partyBPercent={result.partyBPercent}
           />
-        </VerdictSummaryCard>
+          {!isSafetyResult ? (
+            <div className="verdict-gavel" aria-hidden="true">
+              <span />
+            </div>
+          ) : null}
+        </div>
 
         <section
           className="result-section result-section--reasons"

@@ -52,6 +52,7 @@ describe("ResultScreen", () => {
     );
 
     expect(screen.getByText("오늘의 판정")).toBeInTheDocument();
+    expect(screen.queryByText("오늘의 판독")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "보상받기" })).toHaveClass(
       "result-primary-action--reward",
     );
@@ -84,7 +85,8 @@ describe("ResultScreen", () => {
       />,
     );
 
-    expect(screen.getByText("오늘의 판독")).toBeInTheDocument();
+    expect(screen.getByText("오늘의 판정")).toBeInTheDocument();
+    expect(screen.queryByText("오늘의 판독")).not.toBeInTheDocument();
     expect(screen.getByText(result.verdict)).toBeInTheDocument();
     expect(screen.getByText("A 62%")).toBeInTheDocument();
     expect(screen.getByText("B 38%")).toBeInTheDocument();

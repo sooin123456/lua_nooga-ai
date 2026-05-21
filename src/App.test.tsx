@@ -483,7 +483,7 @@ describe("App text review flow", () => {
       screen.getByRole("button", { name: /무료\s*판독\s*받기/ }),
     );
 
-    expect(await screen.findByText("오늘의 판독")).toBeInTheDocument();
+    expect(await screen.findByText("오늘의 판정")).toBeInTheDocument();
     expect(screen.getByLabelText("A 55%, B 45%")).toBeInTheDocument();
     expect(screen.getByText("증거 1")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "보상받기" }));
