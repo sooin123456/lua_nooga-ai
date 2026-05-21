@@ -34,6 +34,9 @@ export function ResultScreen({
   const [hasLiked, setHasLiked] = useState(false);
   const [shareMessage, setShareMessage] = useState<string | null>(null);
   const [commentMessage, setCommentMessage] = useState<string | null>(null);
+  const [isPrecedentConfirmationOpen, setIsPrecedentConfirmationOpen] =
+    useState(false);
+  const [hasPrecedentConsent, setHasPrecedentConsent] = useState(false);
   const [activeSharedResultId, setActiveSharedResultId] = useState(
     sharedResultId ?? null,
   );
@@ -293,9 +296,50 @@ export function ResultScreen({
       </div>
 
       {!isSafetyResult ? (
-        <button className="result-objection-cta" type="button">
+        <button
+          className="result-objection-cta"
+          type="button"
+          aria-expanded={isPrecedentConfirmationOpen}
+          aria-controls="precedent-objection-confirmation"
+          onClick={() => {
+            setIsPrecedentConfirmationOpen((isOpen) => !isOpen);
+          }}
+        >
           억울하면 유사 판례로 한 번 더 따져보기
         </button>
+      ) : null}
+
+      {!isSafetyResult && isPrecedentConfirmationOpen ? (
+        <section
+          id="precedent-objection-confirmation"
+          className="precedent-confirmation-panel"
+          aria-label="판례 분석 결제 전 확인"
+        >
+          <div className="precedent-confirmation-panel__header">
+            <h2>판례로 한 번 더 확인하기</h2>
+            <strong>990원</strong>
+          </div>
+          <p>
+            결제 후 판독 대화 텍스트를 서버로 보내 유사 판례와 비교해요.
+          </p>
+          <p>
+            법률 상담이 아닌 참고용 분석이에요. 상황과 쟁점에 따라 유사 판례가
+            없을 수 있어요.
+          </p>
+          <label className="precedent-confirmation-panel__consent">
+            <input
+              type="checkbox"
+              checked={hasPrecedentConsent}
+              onChange={(event) => {
+                setHasPrecedentConsent(event.currentTarget.checked);
+              }}
+            />
+            <span>서버 전송과 참고용 분석에 동의합니다.</span>
+          </label>
+          <button type="button" disabled={!hasPrecedentConsent}>
+            동의하고 분석하기
+          </button>
+        </section>
       ) : null}
 
       {!isSafetyResult ? (

@@ -73,7 +73,69 @@ describe("ResultScreen", () => {
     expect(
       screen.getByRole("button", { name: /억울하면 유사 판례로 한 번 더 따져보기/ }),
     ).toHaveClass("result-objection-cta");
-    expect(screen.queryByText("990원 결제 후")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("판례 분석 결제 전 확인"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens precedent objection confirmation with price and consent details", async () => {
+    const user = userEvent.setup();
+
+    renderResultScreen(
+      <ResultScreen
+        result={normalResult}
+        onRestart={vi.fn()}
+        onOpenRewardChat={vi.fn()}
+        resultShareService={null}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /억울하면 유사 판례로 한 번 더 따져보기/,
+      }),
+    );
+
+    const confirmation = screen.getByLabelText("판례 분석 결제 전 확인");
+    expect(confirmation).toHaveTextContent("990원");
+    expect(confirmation).toHaveTextContent("판독 대화 텍스트");
+    expect(confirmation).toHaveTextContent("법률 상담이 아닌 참고용 분석");
+    expect(confirmation).toHaveTextContent("유사 판례가 없을 수 있어요");
+    expect(
+      screen.getByRole("checkbox", {
+        name: "서버 전송과 참고용 분석에 동의합니다.",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "동의하고 분석하기" }),
+    ).toBeDisabled();
+  });
+
+  it("enables precedent analysis confirmation after consent is checked", async () => {
+    const user = userEvent.setup();
+
+    renderResultScreen(
+      <ResultScreen
+        result={normalResult}
+        onRestart={vi.fn()}
+        resultShareService={null}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /억울하면 유사 판례로 한 번 더 따져보기/,
+      }),
+    );
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: "서버 전송과 참고용 분석에 동의합니다.",
+      }),
+    );
+
+    expect(
+      screen.getByRole("button", { name: "동의하고 분석하기" }),
+    ).toBeEnabled();
   });
 
   it("shows verdict, percentages, exactly three reasons, advice, and disclaimer", () => {
@@ -312,7 +374,7 @@ describe("ResultScreen", () => {
     ).toBeInTheDocument();
   });
 
-  it("does not show the objection precedent panel on the result screen", () => {
+  it("does not show the objection precedent confirmation before CTA is opened", () => {
     renderResultScreen(
       <ResultScreen
         result={result}
@@ -321,9 +383,8 @@ describe("ResultScreen", () => {
       />,
     );
 
-    expect(screen.queryByText("판정이 억울한가요?")).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "억울하면 판례로 다시 따지기" }),
+      screen.queryByLabelText("판례 분석 결제 전 확인"),
     ).not.toBeInTheDocument();
   });
 
