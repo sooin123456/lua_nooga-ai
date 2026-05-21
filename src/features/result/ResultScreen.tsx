@@ -302,7 +302,13 @@ export function ResultScreen({
           aria-expanded={isPrecedentConfirmationOpen}
           aria-controls="precedent-objection-confirmation"
           onClick={() => {
-            setIsPrecedentConfirmationOpen((isOpen) => !isOpen);
+            setIsPrecedentConfirmationOpen((isOpen) => {
+              if (isOpen) {
+                setHasPrecedentConsent(false);
+              }
+
+              return !isOpen;
+            });
           }}
         >
           억울하면 유사 판례로 한 번 더 따져보기

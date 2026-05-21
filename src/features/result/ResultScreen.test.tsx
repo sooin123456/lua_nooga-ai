@@ -138,6 +138,48 @@ describe("ResultScreen", () => {
     ).toBeEnabled();
   });
 
+  it("resets precedent consent after the confirmation is closed and reopened", async () => {
+    const user = userEvent.setup();
+
+    renderResultScreen(
+      <ResultScreen
+        result={normalResult}
+        onRestart={vi.fn()}
+        resultShareService={null}
+      />,
+    );
+
+    const objectionCta = screen.getByRole("button", {
+      name: /억울하면 유사 판례로 한 번 더 따져보기/,
+    });
+
+    await user.click(objectionCta);
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: "서버 전송과 참고용 분석에 동의합니다.",
+      }),
+    );
+    expect(
+      screen.getByRole("button", { name: "동의하고 분석하기" }),
+    ).toBeEnabled();
+
+    await user.click(objectionCta);
+    expect(
+      screen.queryByLabelText("판례 분석 결제 전 확인"),
+    ).not.toBeInTheDocument();
+
+    await user.click(objectionCta);
+
+    expect(
+      screen.getByRole("checkbox", {
+        name: "서버 전송과 참고용 분석에 동의합니다.",
+      }),
+    ).not.toBeChecked();
+    expect(
+      screen.getByRole("button", { name: "동의하고 분석하기" }),
+    ).toBeDisabled();
+  });
+
   it("shows verdict, percentages, exactly three reasons, advice, and disclaimer", () => {
     renderResultScreen(
       <ResultScreen
