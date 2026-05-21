@@ -23,7 +23,7 @@ beforeAll(() => {
 });
 
 const result: JudgmentResult = {
-  verdict: "A가 62% 정도 더 선 넘었어요",
+  verdict: "A가 62% 선넘었어요",
   partyAPercent: 62,
   partyBPercent: 38,
   reasons: ["감정 표현이 강했어요", "사과가 뒤따랐어요", "대화를 끝내려 했어요"],
@@ -41,14 +41,22 @@ function renderResultScreen(ui: ReactNode) {
 
 describe("ResultScreen", () => {
   it("shows verdict, percentages, exactly three reasons, advice, and disclaimer", () => {
-    renderResultScreen(<ResultScreen result={result} onRestart={vi.fn()} />);
+    renderResultScreen(
+      <ResultScreen
+        result={result}
+        resultShareService={null}
+        onRestart={vi.fn()}
+      />,
+    );
 
-    expect(screen.getByText("오늘의 판결")).toBeInTheDocument();
-    expect(screen.getByText("판독 결과")).toBeInTheDocument();
+    expect(screen.getByText("오늘의 판독")).toBeInTheDocument();
     expect(screen.getByText(result.verdict)).toBeInTheDocument();
     expect(screen.getByText("A 62%")).toBeInTheDocument();
     expect(screen.getByText("B 38%")).toBeInTheDocument();
     expect(screen.getByLabelText("A 62%, B 38%")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("판례를 두드리는 망치 판정 이펙트"),
+    ).toBeInTheDocument();
     expect(screen.getByText("증거 1")).toBeInTheDocument();
     expect(screen.getByText("증거 2")).toBeInTheDocument();
     expect(screen.getByText("증거 3")).toBeInTheDocument();
@@ -63,6 +71,7 @@ describe("ResultScreen", () => {
     expect(
       screen.getByText(/입력된 내용 기준의 재미용 판독/),
     ).toBeInTheDocument();
+    expect(screen.queryByText("억울하면 판례로 다시 따지기")).not.toBeInTheDocument();
   });
 
   it("calls onRestart when the restart button is pressed", async () => {
@@ -76,32 +85,35 @@ describe("ResultScreen", () => {
     expect(onRestart).toHaveBeenCalledTimes(1);
   });
 
-  it("recommends a Toss Shopping reward from the winner wish", async () => {
+  it("opens the Lua reward chat from the bottom reward action", async () => {
     const user = userEvent.setup();
-    renderResultScreen(<ResultScreen result={result} onRestart={vi.fn()} />);
+    const onOpenRewardChat = vi.fn();
+    renderResultScreen(
+      <ResultScreen
+        result={result}
+        resultShareService={null}
+        onRestart={vi.fn()}
+        onOpenRewardChat={onOpenRewardChat}
+      />,
+    );
 
-    await user.type(screen.getByLabelText("이긴 사람이 받고 싶은 것"), "달달한 거");
-    await user.click(screen.getByRole("button", { name: "보상 추천 받기" }));
+    await user.click(screen.getByRole("button", { name: "보상받기" }));
 
-    expect(screen.getByText("디저트/간식")).toBeInTheDocument();
-    expect(screen.getByText("초콜릿 · 마카롱 · 케이크")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "토스 쇼핑 연결 준비 중" }),
-    ).toBeDisabled();
-    expect(screen.getByRole("status")).toHaveTextContent("디저트/간식");
+    expect(onOpenRewardChat).toHaveBeenCalledTimes(1);
   });
 
-  it("supports Enter submission and clears stale reward results on edit", async () => {
-    const user = userEvent.setup();
-    renderResultScreen(<ResultScreen result={result} onRestart={vi.fn()} />);
+  it("disables the reward chat CTA when no route handler is provided", () => {
+    renderResultScreen(
+      <ResultScreen
+        result={result}
+        resultShareService={null}
+        onRestart={vi.fn()}
+      />,
+    );
 
-    const input = screen.getByLabelText("이긴 사람이 받고 싶은 것");
-
-    await user.type(input, "커피{Enter}");
-    expect(screen.getByRole("status")).toHaveTextContent("커피/음료");
-
-    await user.type(input, "랑 케이크");
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "보상받기" }),
+    ).toBeDisabled();
   });
 
   it("does not show shopping reward flow for safety results", () => {
@@ -112,25 +124,148 @@ describe("ResultScreen", () => {
       />,
     );
 
-    expect(screen.queryByLabelText("이긴 사람이 받고 싶은 것")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "보상받기" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("opens the 990원 precedent setup panel without charging", async () => {
+  it("supports lightweight likes, comments, and sharing", async () => {
     const user = userEvent.setup();
-    renderResultScreen(<ResultScreen result={result} onRestart={vi.fn()} />);
-
-    expect(
-      screen.getByText("아직 결제되지 않아요. 결제 연결 전 준비 화면이에요."),
-    ).toBeInTheDocument();
-
-    await user.click(
-      screen.getByRole("button", { name: "결제 없이 판례 판독 미리보기" }),
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: undefined,
+    });
+    renderResultScreen(
+      <ResultScreen
+        result={result}
+        resultShareService={null}
+        onRestart={vi.fn()}
+      />,
     );
 
-    expect(screen.getByText("990원 판례 판독")).toBeInTheDocument();
-    expect(screen.getByText("인앱결제 연결 예정")).toBeInTheDocument();
-    expect(screen.getByText("판례 검색 서버 연결 예정")).toBeInTheDocument();
-    expect(screen.getByText(/법률 판단은 사건의 구체적 사실관계/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "0개의 댓글" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "추천 0" }));
+    expect(screen.getByRole("button", { name: "추천 1" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    await user.type(screen.getByLabelText("판독 결과 댓글"), "이건 인정");
+    await user.click(screen.getByRole("button", { name: "등록" }));
+    expect(screen.getByText("이건 인정")).toBeInTheDocument();
+    expect(screen.getByText("답글 0개")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "판독 결과 공유하기" }));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining(result.verdict));
+    expect(screen.getByText("판독 결과를 공유할 수 있게 준비했어요.")).toBeInTheDocument();
+  });
+
+  it("blocks public comments that cross the line", async () => {
+    const user = userEvent.setup();
+
+    renderResultScreen(
+      <ResultScreen
+        result={result}
+        resultShareService={null}
+        onRestart={vi.fn()}
+      />,
+    );
+
+    await user.type(screen.getByLabelText("판독 결과 댓글"), "진짜 죽여버려");
+    await user.click(screen.getByRole("button", { name: "등록" }));
+
+    expect(
+      screen.getByText("선넘었어요. 댓글은 가볍게 남겨주세요."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("익명 1")).not.toBeInTheDocument();
+  });
+
+  it("stores reactions through the result share service before sharing", async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const resultShareService = {
+      createSharedResult: vi.fn().mockResolvedValue({
+        id: "shared-1",
+        result,
+        createdAt: "2026-05-20T12:00:00.000Z",
+        expiresAt: "2026-05-27T12:00:00.000Z",
+      }),
+      getSharedResult: vi.fn(),
+      listComments: vi.fn().mockResolvedValue([]),
+      addComment: vi.fn().mockResolvedValue({
+        id: "comment-1",
+        resultId: "shared-1",
+        body: "서버 댓글",
+        createdAt: "2026-05-20T12:00:01.000Z",
+      }),
+      getLikeState: vi.fn().mockResolvedValue({
+        likeCount: 0,
+        hasLiked: false,
+      }),
+      setLiked: vi.fn().mockResolvedValue({
+        likeCount: 1,
+        hasLiked: true,
+      }),
+      listHotBattles: vi.fn(),
+    };
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: undefined,
+    });
+
+    renderResultScreen(
+      <ResultScreen
+        result={result}
+        resultShareService={resultShareService}
+        onRestart={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "추천 0" }));
+    expect(await screen.findByRole("button", { name: "추천 1" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(resultShareService.createSharedResult).toHaveBeenCalledWith(result);
+    expect(resultShareService.setLiked).toHaveBeenCalledWith("shared-1", true);
+
+    await user.type(screen.getByLabelText("판독 결과 댓글"), "서버 댓글");
+    await user.click(screen.getByRole("button", { name: "등록" }));
+    expect(await screen.findByText("서버 댓글")).toBeInTheDocument();
+    expect(resultShareService.addComment).toHaveBeenCalledWith(
+      "shared-1",
+      "서버 댓글",
+    );
+
+    await user.click(screen.getByRole("button", { name: "판독 결과 공유하기" }));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("result=shared-1"));
+    expect(
+      screen.getByText("공유 가능한 판독 결과 링크를 준비했어요."),
+    ).toBeInTheDocument();
+  });
+
+  it("does not show the objection precedent panel on the result screen", () => {
+    renderResultScreen(
+      <ResultScreen
+        result={result}
+        sourceText="A: 너 때문이야"
+        onRestart={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText("판정이 억울한가요?")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "억울하면 판례로 다시 따지기" }),
+    ).not.toBeInTheDocument();
   });
 
   it("does not show premium precedent CTA for safety results", () => {
@@ -142,7 +277,7 @@ describe("ResultScreen", () => {
     );
 
     expect(
-      screen.queryByRole("button", { name: "결제 없이 판례 판독 미리보기" }),
+      screen.queryByRole("button", { name: "990원 내고 판례로 다시 따지기" }),
     ).not.toBeInTheDocument();
   });
 });

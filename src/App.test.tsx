@@ -67,8 +67,26 @@ describe("App text review flow", () => {
       screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
     ).toBeInTheDocument();
     expect(screen.getByText("최근 판정")).toBeInTheDocument();
-    expect(screen.getByText("990원 판례 판독")).toBeInTheDocument();
+    expect(screen.queryByText("억울하면 판례로 다시 따지기")).not.toBeInTheDocument();
     expect(screen.getByText(/현재 무료 판독은 입력 내용을/)).toBeInTheDocument();
+  });
+
+  it("keeps the user inside the app when browser back is pressed", async () => {
+    const user = userEvent.setup();
+
+    await renderAppHome(user);
+
+    await user.click(
+      screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
+    );
+    expect(screen.getByText("증거 확인")).toBeInTheDocument();
+
+    fireEvent.popState(window);
+
+    await waitFor(() => {
+      expect(screen.getByText("오늘의 핫 Battle 🔥")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("증거 확인")).not.toBeInTheDocument();
   });
 
   it("runs OCR for a pasted screenshot image and fills review text", async () => {
@@ -348,7 +366,7 @@ describe("App text review flow", () => {
     await user.click(screen.getByRole("button", { name: "돌아가기" }));
 
     resolveAnalyze({
-      verdict: "A가 55% 정도 더 선 넘었어요",
+      verdict: "A가 55% 선넘었어요",
       partyAPercent: 55,
       partyBPercent: 45,
       reasons: ["첫 번째 이유", "두 번째 이유", "세 번째 이유"],
@@ -363,10 +381,10 @@ describe("App text review flow", () => {
     expect(screen.queryByText("임시 판독 결과")).not.toBeInTheDocument();
   });
 
-  it("shows free verdict result with reward and premium preview sections", async () => {
+  it("shows free verdict result with reward recommendations and no precedent panel", async () => {
     const user = userEvent.setup();
     vi.mocked(analyzeWithRules).mockResolvedValue({
-      verdict: "A가 55% 정도 더 선 넘었어요",
+      verdict: "A가 55% 선넘었어요",
       partyAPercent: 55,
       partyBPercent: 45,
       reasons: ["첫 번째 이유", "두 번째 이유", "세 번째 이유"],
@@ -378,7 +396,7 @@ describe("App text review flow", () => {
 
     expect(screen.getByText("루아 AI")).toBeInTheDocument();
     expect(screen.getByText("최근 판정")).toBeInTheDocument();
-    expect(screen.getByText("990원 판례 판독")).toBeInTheDocument();
+    expect(screen.queryByText("억울하면 판례로 다시 따지기")).not.toBeInTheDocument();
 
     await user.click(
       screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
@@ -387,28 +405,21 @@ describe("App text review flow", () => {
       screen.getByRole("button", { name: /무료\s*판독\s*받기/ }),
     );
 
-    expect(await screen.findByText("오늘의 판결")).toBeInTheDocument();
+    expect(await screen.findByText("오늘의 판독")).toBeInTheDocument();
     expect(screen.getByLabelText("A 55%, B 45%")).toBeInTheDocument();
     expect(screen.getByText("증거 1")).toBeInTheDocument();
-    expect(screen.getByText("이긴 사람 보상 추천")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "결제 없이 판례 판독 미리보기" }),
-    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "보상받기" }));
 
-    await user.type(screen.getByLabelText("이긴 사람이 받고 싶은 것"), "달달한 거");
-    await user.click(screen.getByRole("button", { name: "보상 추천 받기" }));
+    expect(screen.getByText("루아 보상 상담소")).toBeInTheDocument();
+    await user.type(screen.getByRole("textbox", { name: "받고 싶은 보상" }), "달달한 거");
+    await user.click(screen.getByRole("button", { name: "루아에게 골라달라 하기" }));
+    expect(screen.getByText("가벼운 사과템")).toBeInTheDocument();
+    expect(screen.getByText("잘못 정도별 토스 상품 추천")).toBeInTheDocument();
+    expect(screen.getByText("확실한 사과")).toBeInTheDocument();
 
-    expect(screen.getByText("디저트/간식")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "토스 쇼핑 연결 준비 중" }),
-    ).toBeDisabled();
-
-    await user.click(
-      screen.getByRole("button", { name: "결제 없이 판례 판독 미리보기" }),
-    );
-
-    expect(screen.getByText("인앱결제 연결 예정")).toBeInTheDocument();
-    expect(screen.getByText("판례 검색 서버 연결 예정")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "홈으로 돌아가기" }));
+    expect(await screen.findByText("최근 판정")).toBeInTheDocument();
+    expect(screen.queryByText("억울하면 판례로 다시 따지기")).not.toBeInTheDocument();
   });
 
   it("shows a manual transcription message when starting the recording flow", async () => {

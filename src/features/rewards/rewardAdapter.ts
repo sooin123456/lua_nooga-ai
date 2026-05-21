@@ -1,3 +1,5 @@
+import { openURL } from "@apps-in-toss/web-framework";
+
 export type RewardCategory =
   | "커피/음료"
   | "디저트/간식"
@@ -9,8 +11,31 @@ export type RewardCategory =
 export type RewardRecommendation = {
   category: RewardCategory;
   searchTerms: readonly [string, string, string];
+  shoppingUrl: string;
   reason: string;
   ctaLabel: "토스 쇼핑에서 비슷한 보상 찾기";
+};
+
+export type RewardSeverity = "light" | "fair" | "serious" | "legend";
+
+export type RewardCandidateTone = "가벼운 사과" | "적정 보상" | "확실한 사과";
+
+export type RewardCandidate = {
+  tone: RewardCandidateTone;
+  title: string;
+  query: string;
+  shoppingUrl: string;
+  priceHint: string;
+  message: string;
+};
+
+export type RewardChatRecommendation = RewardRecommendation & {
+  blamedParty: "A" | "B";
+  blamePercent: number;
+  severity: RewardSeverity;
+  severityLabel: string;
+  luaMessage: string;
+  candidates: readonly [RewardCandidate, RewardCandidate, RewardCandidate];
 };
 
 const rewardRules: Array<{
@@ -53,9 +78,12 @@ const rewardRules: Array<{
 
 const fallback = {
   category: "생활 소품" as const,
-  searchTerms: ["작은 선물", "편지지", "캔들"] as const,
-  reason: "취향을 잘 모를 때도 부담 없이 고르기 좋은 보상이에요.",
+  searchTerms: ["미니 캔들 선물세트", "귀여운 편지지 세트", "작은 디퓨저"] as const,
+  reason: "작은 선물 안에서도 잘못 정도에 맞춰 부담 없는 상품을 고를 수 있어요.",
 };
+
+const defaultShoppingSearchUrl =
+  "https://service.toss.im/shopping-discovery/search?keyword={query}";
 
 function normalizeForMatching(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, "");
@@ -92,10 +120,162 @@ export function createRewardRecommendation(wish: string): RewardRecommendation {
   }, undefined);
   const recommendation = match?.rule ?? fallback;
 
+  const primarySearchTerm = recommendation.searchTerms[0];
+
   return {
     category: recommendation.category,
     searchTerms: [...recommendation.searchTerms] as const,
+    shoppingUrl: createShoppingSearchUrl(primarySearchTerm),
     reason: recommendation.reason,
     ctaLabel: "토스 쇼핑에서 비슷한 보상 찾기",
   };
+}
+
+export function getRewardSeverity(blamePercent: number): RewardSeverity {
+  if (blamePercent >= 90) {
+    return "legend";
+  }
+
+  if (blamePercent >= 75) {
+    return "serious";
+  }
+
+  if (blamePercent >= 60) {
+    return "fair";
+  }
+
+  return "light";
+}
+
+function getSeverityLabel(severity: RewardSeverity) {
+  switch (severity) {
+    case "legend":
+      return "제대로 사과 패키지";
+    case "serious":
+      return "기분 회복 선물급";
+    case "fair":
+      return "커피/디저트급";
+    case "light":
+      return "가벼운 사과템";
+  }
+}
+
+function getPriceHints(severity: RewardSeverity): readonly [string, string, string] {
+  switch (severity) {
+    case "legend":
+      return ["1만원대", "2만원대", "3만원 이상"];
+    case "serious":
+      return ["7천원대", "1만원대", "2만원대"];
+    case "fair":
+      return ["5천원대", "8천원대", "1만원대"];
+    case "light":
+      return ["3천원대", "5천원대", "7천원대"];
+  }
+}
+
+function getLuaMessage({
+  blamedParty,
+  blamePercent,
+  category,
+  severity,
+}: {
+  blamedParty: "A" | "B";
+  blamePercent: number;
+  category: RewardCategory;
+  severity: RewardSeverity;
+}) {
+  if (severity === "legend") {
+    return `${blamedParty}가 ${blamePercent}% 선넘었어요. 이 정도면 ${category}도 그냥 하나로는 약합니다. 루아 기준으로는 제대로 사과 패키지예요.`;
+  }
+
+  if (severity === "serious") {
+    return `${blamedParty}가 ${blamePercent}% 선넘었어요. 말로만 미안하다고 넘기기엔 조금 큽니다. ${category} 쪽으로 마음을 보여줘야 해요.`;
+  }
+
+  if (severity === "fair") {
+    return `${blamedParty}가 ${blamePercent}% 선넘었어요. 분위기 풀기엔 ${category} 보상이 딱 좋아 보여요.`;
+  }
+
+  return `${blamedParty}가 ${blamePercent}% 선넘었어요. 큰 벌은 아니고, 가볍게 웃으면서 풀 수 있는 ${category} 정도면 충분해요.`;
+}
+
+export function createRewardChatRecommendation({
+  wish,
+  partyAPercent,
+  partyBPercent,
+}: {
+  wish: string;
+  partyAPercent: number;
+  partyBPercent: number;
+}): RewardChatRecommendation {
+  const recommendation = createRewardRecommendation(wish);
+  const blamedParty = partyAPercent >= partyBPercent ? "A" : "B";
+  const blamePercent = Math.max(partyAPercent, partyBPercent);
+  const severity = getRewardSeverity(blamePercent);
+  const priceHints = getPriceHints(severity);
+  const [firstTerm, secondTerm, thirdTerm] = recommendation.searchTerms;
+  const candidates = [
+    {
+      tone: "가벼운 사과" as const,
+      title: firstTerm,
+      query: firstTerm,
+      shoppingUrl: createShoppingSearchUrl(firstTerm),
+      priceHint: priceHints[0],
+      message: "가볍게 풀 수 있는 정도의 토스 상품이에요.",
+    },
+    {
+      tone: "적정 보상" as const,
+      title: secondTerm,
+      query: secondTerm,
+      shoppingUrl: createShoppingSearchUrl(secondTerm),
+      priceHint: priceHints[1],
+      message: "잘못 정도와 부담감을 맞춘 중간 보상이에요.",
+    },
+    {
+      tone: "확실한 사과" as const,
+      title: thirdTerm,
+      query: thirdTerm,
+      shoppingUrl: createShoppingSearchUrl(thirdTerm),
+      priceHint: priceHints[2],
+      message: "상대가 아직 서운할 때 확실히 마음을 보여주는 상품이에요.",
+    },
+  ] as const;
+
+  return {
+    ...recommendation,
+    blamedParty,
+    blamePercent,
+    severity,
+    severityLabel: getSeverityLabel(severity),
+    luaMessage: getLuaMessage({
+      blamedParty,
+      blamePercent,
+      category: recommendation.category,
+      severity,
+    }),
+    candidates,
+  };
+}
+
+export function createShoppingSearchUrl(query: string) {
+  const template =
+    (import.meta.env.VITE_TOSS_SHOPPING_SEARCH_URL as string | undefined) ??
+    defaultShoppingSearchUrl;
+  const encodedQuery = encodeURIComponent(query.trim() || "작은 선물");
+
+  if (template.includes("{query}")) {
+    return template.replaceAll("{query}", encodedQuery);
+  }
+
+  const url = new URL(template);
+  url.searchParams.set("keyword", query.trim() || "작은 선물");
+  return url.toString();
+}
+
+export async function openRewardShopping(recommendation: RewardRecommendation) {
+  await openURL(recommendation.shoppingUrl);
+}
+
+export async function openRewardCandidate(candidate: RewardCandidate) {
+  await openURL(candidate.shoppingUrl);
 }

@@ -1,4 +1,4 @@
-import { Button, Top } from "@toss/tds-mobile";
+import { Button } from "@toss/tds-mobile";
 import type { ClipboardEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
@@ -96,24 +96,32 @@ export function TextReview({
 
   return (
     <main className="screen screen--review" onPaste={onPaste}>
-      <Top
-        title={
-          <Top.TitleParagraph size={22}>
-            루아 AI가 판독할 대화
-          </Top.TitleParagraph>
-        }
-        subtitleBottom={
-          <Top.SubtitleParagraph size={15}>
-            판독 전에 증거 내용을 확인하고 고칠 수 있어요.
-          </Top.SubtitleParagraph>
-        }
-      />
+      <header className="review-brief">
+        <button className="review-brief__back" type="button" onClick={onBack}>
+          돌아가기
+        </button>
+        <p>루아 AI 검사실</p>
+        <h1>증거 확인</h1>
+        <span>붙여넣은 내용만 확인하면 바로 판독으로 넘어가요.</span>
+      </header>
 
-      {helperText ? <p className="notice">{helperText}</p> : null}
+      <ol className="review-steps" aria-label="판독 단계">
+        <li className="is-active">1 증거</li>
+        <li>2 확인</li>
+        <li>3 판독</li>
+      </ol>
 
       <section className="text-review" aria-label="대화 내용 확인">
-        <label htmlFor="analysis-text">분석할 대화 내용</label>
+        <div className="text-review__header">
+          <label htmlFor="analysis-text">분석할 대화 내용</label>
+          <span>{text.trim().length}자</span>
+        </div>
         {mediaControl}
+        {helperText ? (
+          <p className="notice">
+            {helperText}
+          </p>
+        ) : null}
         <textarea
           id="analysis-text"
           aria-label="분석할 대화 내용"
@@ -139,9 +147,6 @@ export function TextReview({
       </section>
 
       <div className="action-row">
-        <Button type="button" variant="weak" onClick={onBack}>
-          돌아가기
-        </Button>
         <Button type="button" disabled={isPending} onClick={handleSubmit}>
           {isPending ? "판독 중..." : "무료 판독 받기"}
         </Button>

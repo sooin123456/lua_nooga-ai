@@ -1,39 +1,230 @@
 import { Button, Top } from "@toss/tds-mobile";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { JudgmentResult } from "../analyzer/types";
-import { createPremiumProduct, requestPremiumVerdict } from "../premium/premiumAdapter";
-import { precedentDisclaimer } from "../precedent/precedentAdapter";
+import { createSharedResultUrl } from "../resultShare/resultLinks";
 import {
-  createRewardRecommendation,
-  type RewardRecommendation,
-} from "../rewards/rewardAdapter";
+  createConfiguredResultShareService,
+  type createResultShareService,
+} from "../resultShare/resultShareAdapter";
+import type { ResultComment } from "../resultShare/types";
+import { moderatePublicComment } from "../safety/safety";
 import { AnimatedPercentBar } from "./AnimatedPercentBar";
 import { ResultReasonCard } from "./ResultReasonCard";
 import { VerdictSummaryCard } from "./VerdictSummaryCard";
 
 type ResultScreenProps = {
   result: JudgmentResult;
+  sourceText?: string;
+  sharedResultId?: string;
+  resultShareService?: ReturnType<typeof createResultShareService> | null;
   onRestart(): void;
+  onOpenRewardChat?(): void;
 };
 
-export function ResultScreen({ result, onRestart }: ResultScreenProps) {
-  const [rewardWish, setRewardWish] = useState("");
-  const [rewardRecommendation, setRewardRecommendation] =
-    useState<RewardRecommendation | null>(null);
-  const [premiumMessage, setPremiumMessage] = useState<string | null>(null);
-  const [isPremiumPending, setIsPremiumPending] = useState(false);
-  const premiumProduct = createPremiumProduct();
+export function ResultScreen({
+  result,
+  sharedResultId,
+  resultShareService,
+  onRestart,
+  onOpenRewardChat,
+}: ResultScreenProps) {
+  const [commentDraft, setCommentDraft] = useState("");
+  const [comments, setComments] = useState<ResultComment[]>([]);
+  const [likeCount, setLikeCount] = useState(0);
+  const [hasLiked, setHasLiked] = useState(false);
+  const [shareMessage, setShareMessage] = useState<string | null>(null);
+  const [commentMessage, setCommentMessage] = useState<string | null>(null);
+  const [activeSharedResultId, setActiveSharedResultId] = useState(
+    sharedResultId ?? null,
+  );
+  const [isReactionPending, setIsReactionPending] = useState(false);
+  const configuredResultShareService = useMemo(
+    () =>
+      resultShareService === undefined
+        ? createConfiguredResultShareService()
+        : resultShareService,
+    [resultShareService],
+  );
   const isSafetyResult = result.safetyLevel !== "normal";
   const safetyLabel = result.safetyLevel === "urgent" ? "긴급 안전 확인" : "주의 필요";
-  const handleRewardSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+
+  useEffect(() => {
+    if (!sharedResultId || !configuredResultShareService) {
+      return;
+    }
+
+    let isCurrent = true;
+    setActiveSharedResultId(sharedResultId);
+
+    Promise.all([
+      configuredResultShareService.listComments(sharedResultId),
+      configuredResultShareService.getLikeState(sharedResultId),
+    ])
+      .then(([nextComments, nextLikeState]) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        setComments(nextComments);
+        setLikeCount(nextLikeState.likeCount);
+        setHasLiked(nextLikeState.hasLiked);
+      })
+      .catch(() => {
+        if (isCurrent) {
+          setShareMessage("공유 결과 반응을 불러오지 못했어요.");
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [configuredResultShareService, sharedResultId]);
+
+  const ensureSharedResult = async () => {
+    if (activeSharedResultId) {
+      return activeSharedResultId;
+    }
+
+    if (!configuredResultShareService) {
+      return null;
+    }
+
+    const sharedResult = await configuredResultShareService.createSharedResult(result);
+    setActiveSharedResultId(sharedResult.id);
+    return sharedResult.id;
+  };
+
+  const handleCommentSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setRewardRecommendation(createRewardRecommendation(rewardWish));
+
+    const nextComment = commentDraft.trim();
+    if (!nextComment) {
+      return;
+    }
+
+    const moderation = moderatePublicComment(nextComment);
+    if (!moderation.isAllowed) {
+      setCommentMessage(moderation.message ?? "선넘었어요. 댓글을 다시 확인해 주세요.");
+      return;
+    }
+
+    if (!configuredResultShareService) {
+      setComments((currentComments) => [
+        {
+          id: `local-${Date.now()}`,
+          resultId: "local",
+          body: moderation.sanitizedText,
+          createdAt: new Date().toISOString(),
+        },
+        ...currentComments,
+      ].slice(0, 5));
+      setCommentDraft("");
+      setCommentMessage(null);
+      return;
+    }
+
+    try {
+      setIsReactionPending(true);
+      const resultId = await ensureSharedResult();
+      if (!resultId) {
+        return;
+      }
+
+      const comment = await configuredResultShareService.addComment(
+        resultId,
+        moderation.sanitizedText,
+      );
+      setComments((currentComments) => [comment, ...currentComments].slice(0, 20));
+    } catch {
+      setShareMessage("댓글을 저장하지 못했어요. 다시 시도해 주세요.");
+      return;
+    } finally {
+      setIsReactionPending(false);
+    }
+
+    setCommentDraft("");
+    setCommentMessage(null);
+  };
+
+  const handleLike = async () => {
+    const nextLiked = !hasLiked;
+
+    if (!configuredResultShareService) {
+      setHasLiked(nextLiked);
+      setLikeCount((currentLikeCount) =>
+        nextLiked ? currentLikeCount + 1 : Math.max(0, currentLikeCount - 1),
+      );
+      return;
+    }
+
+    try {
+      setIsReactionPending(true);
+      const resultId = await ensureSharedResult();
+      if (!resultId) {
+        return;
+      }
+
+      const nextLikeState = await configuredResultShareService.setLiked(
+        resultId,
+        nextLiked,
+      );
+      setHasLiked(nextLikeState.hasLiked);
+      setLikeCount(nextLikeState.likeCount);
+    } catch {
+      setShareMessage("좋아요를 저장하지 못했어요. 다시 시도해 주세요.");
+    } finally {
+      setIsReactionPending(false);
+    }
+  };
+
+  const handleShare = async () => {
+    let shareUrl: string | null = null;
+
+    try {
+      const resultId = await ensureSharedResult();
+      if (resultId && typeof window !== "undefined") {
+        shareUrl = createSharedResultUrl({
+          href: window.location.href,
+          resultId,
+        });
+      }
+    } catch {
+      setShareMessage("공유 링크를 만들지 못했어요. 다시 시도해 주세요.");
+      return;
+    }
+
+    const shareText = [
+      "누가 잘못 AI 판독 결과",
+      result.verdict,
+      `A ${result.partyAPercent}% · B ${result.partyBPercent}%`,
+      result.advice,
+      shareUrl,
+    ].filter(Boolean).join("\n");
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "누가 잘못 AI 판독 결과",
+          text: shareText,
+          url: shareUrl ?? undefined,
+        });
+      } else {
+        await navigator.clipboard.writeText(shareText);
+      }
+      setShareMessage(
+        shareUrl
+          ? "공유 가능한 판독 결과 링크를 준비했어요."
+          : "판독 결과를 공유할 수 있게 준비했어요.",
+      );
+    } catch {
+      setShareMessage("공유를 완료하지 못했어요. 다시 시도해 주세요.");
+    }
   };
 
   return (
     <main className="screen screen--result">
       <Top
-        title={<Top.TitleParagraph size={22}>판독 결과</Top.TitleParagraph>}
+        title={<Top.TitleParagraph size={22}>판정 완료</Top.TitleParagraph>}
         subtitleBottom={
           <Top.SubtitleParagraph size={15}>
             입력한 대화를 기준으로 가볍게 참고해 주세요.
@@ -50,12 +241,12 @@ export function ResultScreen({ result, onRestart }: ResultScreenProps) {
         <VerdictSummaryCard
           isSafetyResult={isSafetyResult}
           verdict={result.verdict}
-        />
-
-        <AnimatedPercentBar
-          partyAPercent={result.partyAPercent}
-          partyBPercent={result.partyBPercent}
-        />
+        >
+          <AnimatedPercentBar
+            partyAPercent={result.partyAPercent}
+            partyBPercent={result.partyBPercent}
+          />
+        </VerdictSummaryCard>
 
         <section
           className="result-section result-section--reasons"
@@ -77,84 +268,6 @@ export function ResultScreen({ result, onRestart }: ResultScreenProps) {
           <p className="result-advice">{result.advice}</p>
         </section>
 
-        {!isSafetyResult ? (
-          <section
-            className="result-section reward-box result-section--reward"
-            aria-labelledby="reward-title"
-          >
-            <h2 id="reward-title">이긴 사람 보상 추천</h2>
-            <label className="reward-box__label" htmlFor="reward-wish">
-              이긴 사람이 받고 싶은 것
-            </label>
-            <form className="reward-box__input-row" onSubmit={handleRewardSubmit}>
-              <input
-                id="reward-wish"
-                value={rewardWish}
-                placeholder="예: 달달한 거, 커피, 귀여운 거"
-                onChange={(event) => {
-                  setRewardWish(event.currentTarget.value);
-                  setRewardRecommendation(null);
-                }}
-              />
-              <button type="submit">
-                보상 추천 받기
-              </button>
-            </form>
-            {rewardRecommendation ? (
-              <div className="reward-result" role="status">
-                <strong>{rewardRecommendation.category}</strong>
-                <p>{rewardRecommendation.searchTerms.join(" · ")}</p>
-                <span>{rewardRecommendation.reason}</span>
-                <button type="button" disabled>
-                  토스 쇼핑 연결 준비 중
-                </button>
-              </div>
-            ) : null}
-          </section>
-        ) : null}
-
-        {!isSafetyResult ? (
-          <section className="premium-panel" aria-labelledby="premium-title">
-            <div>
-              <p className="eyebrow">판례 근거는 나중에 서버로 연결</p>
-              <h2 id="premium-title">{premiumProduct.title}</h2>
-              <p>{premiumProduct.description}</p>
-              <p>아직 결제되지 않아요. 결제 연결 전 준비 화면이에요.</p>
-            </div>
-            <button
-              type="button"
-              disabled={isPremiumPending}
-              onClick={async () => {
-                if (isPremiumPending) {
-                  return;
-                }
-
-                setIsPremiumPending(true);
-                setPremiumMessage("준비 상태 확인 중");
-
-                try {
-                  const paymentState = await requestPremiumVerdict();
-                  setPremiumMessage(paymentState.message);
-                } catch {
-                  setPremiumMessage("준비 상태 확인에 실패했어요");
-                } finally {
-                  setIsPremiumPending(false);
-                }
-              }}
-            >
-              {isPremiumPending
-                ? "준비 상태 확인 중"
-                : "결제 없이 판례 판독 미리보기"}
-            </button>
-            {premiumMessage ? (
-              <div className="premium-panel__status" role="status">
-                <strong>{premiumMessage}</strong>
-                <span>판례 검색 서버 연결 예정</span>
-                <p>{precedentDisclaimer}</p>
-              </div>
-            ) : null}
-          </section>
-        ) : null}
       </section>
 
       <p className="result-disclaimer">
@@ -162,9 +275,111 @@ export function ResultScreen({ result, onRestart }: ResultScreenProps) {
         상담이 아니에요.
       </p>
 
-      <Button type="button" onClick={onRestart}>
-        다시 판독하기
-      </Button>
+      <div className="result-primary-actions">
+        {!isSafetyResult ? (
+          <Button type="button" onClick={onOpenRewardChat} disabled={!onOpenRewardChat}>
+            보상받기
+          </Button>
+        ) : null}
+        <Button type="button" onClick={onRestart}>
+          다시 판독하기
+        </Button>
+      </div>
+
+      {!isSafetyResult ? (
+        <section
+          className="result-section result-comments-board"
+          aria-labelledby="comments-title"
+        >
+          <div className="result-comments-board__title-row">
+            <h2 id="comments-title">
+              <strong>{comments.length}</strong>개의 댓글
+            </h2>
+            <button
+              className={hasLiked ? "is-liked" : ""}
+              type="button"
+              aria-pressed={hasLiked}
+              disabled={isReactionPending}
+              onClick={handleLike}
+            >
+              추천 {likeCount}
+            </button>
+          </div>
+          <form className="result-comment-form" onSubmit={handleCommentSubmit}>
+            <div className="result-comment-form__identity">
+              <label htmlFor="result-comment-writer">댓글쓰기</label>
+              <input
+                id="result-comment-writer"
+                readOnly
+                value="익명"
+                aria-label="댓글 작성자"
+              />
+            </div>
+            <label className="sr-only" htmlFor="result-comment">
+              판독 결과 댓글
+            </label>
+            <div className="result-comment-form__body">
+              <textarea
+                id="result-comment"
+                value={commentDraft}
+                maxLength={120}
+                placeholder="타인을 배려하는 마음을 담아 댓글을 남겨주세요."
+                onChange={(event) => {
+                  setCommentDraft(event.currentTarget.value);
+                  setCommentMessage(null);
+                }}
+              />
+              <button
+                type="submit"
+                disabled={commentDraft.trim().length === 0 || isReactionPending}
+              >
+                등록
+              </button>
+            </div>
+          </form>
+          {commentMessage ? (
+            <p className="result-share-status" role="alert">
+              {commentMessage}
+            </p>
+          ) : null}
+          <div className="result-comment-tabs" aria-label="댓글 정렬">
+            <button type="button" aria-pressed="true">최신순</button>
+            <button type="button" aria-pressed="false">추천순</button>
+          </div>
+          {comments.length > 0 ? (
+            <ol className="result-comments">
+              {comments.map((comment, index) => (
+                <li key={comment.id}>
+                  <div className="result-comment-meta">
+                    <strong>익명 {comments.length - index}</strong>
+                    <span>방금</span>
+                  </div>
+                  <p>{comment.body}</p>
+                  <div className="result-comment-actions" aria-label="댓글 반응">
+                    <span>답글 0개</span>
+                    <span>추천 0</span>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="result-comments-empty">
+              아직 댓글이 없어요. 판독 결과에 한마디를 남겨보세요.
+            </p>
+          )}
+          <div className="result-comments-board__share-row">
+            <button
+              className="result-share-button"
+              type="button"
+              disabled={isReactionPending}
+              onClick={handleShare}
+            >
+              판독 결과 공유하기
+            </button>
+            {shareMessage ? <p className="result-share-status">{shareMessage}</p> : null}
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }

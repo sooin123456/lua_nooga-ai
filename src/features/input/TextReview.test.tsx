@@ -62,9 +62,12 @@ describe("TextReview", () => {
     expect(
       screen.getByRole("button", { name: "무료 판독 받기" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/루아 AI/)).toBeInTheDocument();
+    expect(screen.getByText("증거 확인")).toBeInTheDocument();
+    expect(screen.getByText("1 증거")).toBeInTheDocument();
+    expect(screen.getByText("2 확인")).toBeInTheDocument();
+    expect(screen.getByText("3 판독")).toBeInTheDocument();
     expect(
-      screen.getByText("판독 전에 증거 내용을 확인하고 고칠 수 있어요."),
+      screen.getByText("붙여넣은 내용만 확인하면 바로 판독으로 넘어가요."),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "무료 판독 받기" }));

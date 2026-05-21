@@ -1,0 +1,7 @@
+.data
+server/precedent-api/data
+node_modules
+dist
+.granite
+*.ait
+exports

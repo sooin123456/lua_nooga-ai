@@ -28,6 +28,22 @@ export function AnimatedPercentBar({
         <span className="animated-percent-bar__fill animated-percent-bar__fill--a" />
         <span className="animated-percent-bar__fill animated-percent-bar__fill--b" />
       </div>
+      <div
+        className="animated-percent-bar__court-effect"
+        aria-label="판례를 두드리는 망치 판정 이펙트"
+        role="img"
+      >
+        <span className="animated-percent-bar__case-card animated-percent-bar__case-card--a">
+          판례
+        </span>
+        <span className="animated-percent-bar__gavel">
+          <span />
+        </span>
+        <span className="animated-percent-bar__impact" />
+        <span className="animated-percent-bar__case-card animated-percent-bar__case-card--b">
+          판결
+        </span>
+      </div>
     </div>
   );
 }
