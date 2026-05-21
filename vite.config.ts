@@ -9,6 +9,7 @@ export default defineConfig({
       "**/node_modules/**",
       "**/dist/**",
       "**/server/**",
+      "**/api/**/*.test.mjs",
     ],
     globals: true,
     passWithNoTests: true,
