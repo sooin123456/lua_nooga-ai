@@ -4,6 +4,7 @@ import type { JudgmentResult, UserPerspective } from "./types";
 const anonymousUserKeyStorageKey = "lua-nooga-ai-anonymous-user-key";
 const fallbackMessage =
   "AI 서버 연결이 불안정해서 기기 안에서 가볍게 판독했어요.";
+let inMemoryAnonymousUserKey: string | null = null;
 
 export type AiJudgmentReady = {
   status: "ready";
@@ -67,7 +68,9 @@ function getAnonymousUserKey() {
     return existingKey;
   }
 
-  const anonymousUserKey = createAnonymousUserKey();
+  const anonymousUserKey =
+    inMemoryAnonymousUserKey ?? createAnonymousUserKey();
+  inMemoryAnonymousUserKey = anonymousUserKey;
 
   try {
     storage?.setItem(anonymousUserKeyStorageKey, anonymousUserKey);

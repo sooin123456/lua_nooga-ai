@@ -110,6 +110,34 @@ describe("analyzeWithAi", () => {
     });
   });
 
+  it("reuses an in-memory anonymous key when localStorage is unavailable", async () => {
+    vi.spyOn(window, "localStorage", "get").mockImplementation(() => {
+      throw new Error("localStorage unavailable");
+    });
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ result: aiResult, remainingFreeUses: 1 }),
+    });
+
+    await analyzeWithAi({
+      text: "A: 첫 번째 요청",
+      userPerspective: "first",
+      fetcher,
+    });
+    await analyzeWithAi({
+      text: "A: 두 번째 요청",
+      userPerspective: "first",
+      fetcher,
+    });
+
+    const firstRequestBody = JSON.parse(fetcher.mock.calls[0][1].body);
+    const secondRequestBody = JSON.parse(fetcher.mock.calls[1][1].body);
+    expect(firstRequestBody.anonymousUserKey).toBe(
+      secondRequestBody.anonymousUserKey,
+    );
+  });
+
   it("returns limited status when daily quota is exhausted", async () => {
     const fetcher = vi.fn().mockResolvedValue({
       ok: false,
