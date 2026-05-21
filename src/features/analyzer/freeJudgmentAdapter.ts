@@ -54,7 +54,7 @@ function getLocalStorage() {
   }
 }
 
-function getAnonymousUserKey() {
+export function getFreeJudgmentAnonymousUserKey() {
   const storage = getLocalStorage();
   let existingKey: string | null = null;
 
@@ -106,7 +106,7 @@ export async function analyzeWithAi({
       body: JSON.stringify({
         text,
         userPerspective,
-        anonymousUserKey: getAnonymousUserKey(),
+        anonymousUserKey: getFreeJudgmentAnonymousUserKey(),
       }),
     });
 

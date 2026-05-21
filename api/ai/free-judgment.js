@@ -1,5 +1,5 @@
 import { normalizeJudgmentResult, parseJsonFromModelText } from "../_aiJson.js";
-import { checkAndConsumeFreeUse } from "../_usageLimit.js";
+import { checkAndConsumeFreeUse, refundFreeUse } from "../_usageLimit.js";
 
 const maxTextLength = 4000;
 const allowedPerspectives = ["first", "second", "unknown"];
@@ -108,8 +108,10 @@ export default async function handler(request, response) {
     return;
   }
 
+  let usage;
+
   try {
-    const usage = await (request.testUsage ?? checkAndConsumeFreeUse)({
+    usage = await (request.testUsage ?? checkAndConsumeFreeUse)({
       anonymousUserKey,
     });
 
@@ -137,6 +139,14 @@ export default async function handler(request, response) {
       remainingFreeUses: usage.remainingFreeUses,
     });
   } catch {
+    if (usage?.allowed) {
+      try {
+        await (request.testRefund ?? refundFreeUse)({ anonymousUserKey });
+      } catch {
+        // The user should not see refund internals; keep the AI error generic.
+      }
+    }
+
     response.status(503).json({
       message: "AI 판독 서버가 잠시 불안정해요. 다시 시도해 주세요.",
     });

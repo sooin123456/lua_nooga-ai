@@ -878,6 +878,113 @@ begin
 end;
 $$;
 
+create or replace function public.refund_free_judgment_use(
+  p_anonymous_user_key text,
+  p_usage_date date,
+  p_free_limit integer default 3
+)
+returns table (
+  refunded boolean,
+  remaining_free_uses integer
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  usage_row public.daily_ai_usage%rowtype;
+begin
+  select *
+  into usage_row
+  from public.daily_ai_usage
+  where anonymous_user_key = trim(p_anonymous_user_key)
+    and usage_date = p_usage_date
+  for update;
+
+  if not found or usage_row.free_uses <= 0 then
+    refunded := false;
+    remaining_free_uses := p_free_limit;
+    return next;
+    return;
+  end if;
+
+  update public.daily_ai_usage
+  set free_uses = free_uses - 1,
+      updated_at = now()
+  where anonymous_user_key = trim(p_anonymous_user_key)
+    and usage_date = p_usage_date
+  returning * into usage_row;
+
+  refunded := true;
+  remaining_free_uses := greatest(
+    0,
+    p_free_limit + usage_row.share_bonus_uses - usage_row.free_uses
+  );
+  return next;
+end;
+$$;
+
+create or replace function public.grant_free_judgment_share_bonus(
+  p_anonymous_user_key text,
+  p_usage_date date,
+  p_free_limit integer default 3
+)
+returns table (
+  granted boolean,
+  remaining_free_uses integer
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  usage_row public.daily_ai_usage%rowtype;
+begin
+  if length(trim(p_anonymous_user_key)) < 8 then
+    raise exception 'invalid anonymous user key';
+  end if;
+
+  insert into public.anonymous_users (anonymous_user_key)
+  values (trim(p_anonymous_user_key))
+  on conflict (anonymous_user_key) do nothing;
+
+  insert into public.daily_ai_usage (anonymous_user_key, usage_date)
+  values (trim(p_anonymous_user_key), p_usage_date)
+  on conflict (anonymous_user_key, usage_date) do nothing;
+
+  select *
+  into usage_row
+  from public.daily_ai_usage
+  where anonymous_user_key = trim(p_anonymous_user_key)
+    and usage_date = p_usage_date
+  for update;
+
+  if usage_row.share_bonus_uses >= 1 then
+    granted := false;
+    remaining_free_uses := greatest(
+      0,
+      p_free_limit + usage_row.share_bonus_uses - usage_row.free_uses
+    );
+    return next;
+    return;
+  end if;
+
+  update public.daily_ai_usage
+  set share_bonus_uses = 1,
+      updated_at = now()
+  where anonymous_user_key = trim(p_anonymous_user_key)
+    and usage_date = p_usage_date
+  returning * into usage_row;
+
+  granted := true;
+  remaining_free_uses := greatest(
+    0,
+    p_free_limit + usage_row.share_bonus_uses - usage_row.free_uses
+  );
+  return next;
+end;
+$$;
+
 revoke all on function public.cleanup_expired_room_messages() from public, anon, authenticated;
 
 revoke all on function public.create_judgment_room(text, timestamptz) from public;
@@ -896,6 +1003,8 @@ revoke all on function public.get_result_like_state(uuid, text) from public;
 revoke all on function public.set_result_like(uuid, text, boolean) from public;
 revoke all on function public.list_hot_battles(integer) from public;
 revoke all on function public.consume_free_judgment_use(text, date, integer) from public, anon, authenticated;
+revoke all on function public.refund_free_judgment_use(text, date, integer) from public, anon, authenticated;
+revoke all on function public.grant_free_judgment_share_bonus(text, date, integer) from public, anon, authenticated;
 
 grant execute on function public.create_judgment_room(text, timestamptz) to anon, authenticated;
 grant execute on function public.get_judgment_room(uuid, text) to anon, authenticated;
@@ -913,6 +1022,8 @@ grant execute on function public.get_result_like_state(uuid, text) to anon, auth
 grant execute on function public.set_result_like(uuid, text, boolean) to anon, authenticated;
 grant execute on function public.list_hot_battles(integer) to anon, authenticated;
 grant execute on function public.consume_free_judgment_use(text, date, integer) to service_role;
+grant execute on function public.refund_free_judgment_use(text, date, integer) to service_role;
+grant execute on function public.grant_free_judgment_share_bonus(text, date, integer) to service_role;
 
 drop policy if exists "public can create shareable judgment results" on public.judgment_results;
 drop policy if exists "public can read active judgment results" on public.judgment_results;

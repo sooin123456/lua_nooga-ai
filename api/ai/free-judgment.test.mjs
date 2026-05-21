@@ -106,6 +106,35 @@ describe("free judgment api", () => {
     assert.equal(response.body.remainingFreeUses, 0);
   });
 
+  it("refunds consumed usage when AI request fails", async () => {
+    process.env.OPENAI_API_KEY = "test-key";
+    const response = createResponse();
+    let didRefund = false;
+
+    await handler(
+      {
+        method: "POST",
+        body: {
+          text: "A: test",
+          userPerspective: "unknown",
+          anonymousUserKey: "anon-3",
+        },
+        testUsage: async () => ({ allowed: true, remainingFreeUses: 2 }),
+        testFetch: async () => {
+          throw new Error("OpenAI unavailable");
+        },
+        testRefund: async ({ anonymousUserKey }) => {
+          didRefund = anonymousUserKey === "anon-3";
+          return { refunded: true, remainingFreeUses: 3 };
+        },
+      },
+      response,
+    );
+
+    assert.equal(response.statusCode, 503);
+    assert.equal(didRefund, true);
+  });
+
   it("rejects non-POST requests with Allow POST", async () => {
     const response = createResponse();
 

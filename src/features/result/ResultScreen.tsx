@@ -1,14 +1,13 @@
 import { Button, Top } from "@toss/tds-mobile";
 import { openURL } from "@apps-in-toss/web-framework";
 import { useEffect, useMemo, useState } from "react";
+import { getFreeJudgmentAnonymousUserKey } from "../analyzer/freeJudgmentAdapter";
 import type { JudgmentResult } from "../analyzer/types";
 import { createSharedResultUrl } from "../resultShare/resultLinks";
 import {
   createConfiguredResultShareService,
   type createResultShareService,
 } from "../resultShare/resultShareAdapter";
-import type { ResultComment } from "../resultShare/types";
-import { moderatePublicComment } from "../safety/safety";
 import { AnimatedPercentBar } from "./AnimatedPercentBar";
 import { ResultReasonCard } from "./ResultReasonCard";
 import { VerdictSummaryCard } from "./VerdictSummaryCard";
@@ -29,12 +28,7 @@ export function ResultScreen({
   onRestart,
   onOpenRewardChat,
 }: ResultScreenProps) {
-  const [commentDraft, setCommentDraft] = useState("");
-  const [comments, setComments] = useState<ResultComment[]>([]);
-  const [likeCount, setLikeCount] = useState(0);
-  const [hasLiked, setHasLiked] = useState(false);
   const [shareMessage, setShareMessage] = useState<string | null>(null);
-  const [commentMessage, setCommentMessage] = useState<string | null>(null);
   const [isPrecedentConfirmationOpen, setIsPrecedentConfirmationOpen] =
     useState(false);
   const [hasPrecedentConsent, setHasPrecedentConsent] = useState(false);
@@ -42,6 +36,7 @@ export function ResultScreen({
     sharedResultId ?? null,
   );
   const [isReactionPending, setIsReactionPending] = useState(false);
+  const [isShareOptionsOpen, setIsShareOptionsOpen] = useState(false);
   const configuredResultShareService = useMemo(
     () =>
       resultShareService === undefined
@@ -60,22 +55,16 @@ export function ResultScreen({
     let isCurrent = true;
     setActiveSharedResultId(sharedResultId);
 
-    Promise.all([
-      configuredResultShareService.listComments(sharedResultId),
-      configuredResultShareService.getLikeState(sharedResultId),
-    ])
-      .then(([nextComments, nextLikeState]) => {
-        if (!isCurrent) {
-          return;
+    configuredResultShareService
+      .getSharedResult(sharedResultId)
+      .then(() => {
+        if (isCurrent) {
+          setShareMessage(null);
         }
-
-        setComments(nextComments);
-        setLikeCount(nextLikeState.likeCount);
-        setHasLiked(nextLikeState.hasLiked);
       })
       .catch(() => {
         if (isCurrent) {
-          setShareMessage("공유 결과 반응을 불러오지 못했어요.");
+          setShareMessage("공유 결과를 불러오지 못했어요.");
         }
       });
 
@@ -95,89 +84,21 @@ export function ResultScreen({
 
     const sharedResult = await configuredResultShareService.createSharedResult(result);
     setActiveSharedResultId(sharedResult.id);
+    await grantShareBonus();
     return sharedResult.id;
   };
 
-  const handleCommentSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const nextComment = commentDraft.trim();
-    if (!nextComment) {
-      return;
-    }
-
-    const moderation = moderatePublicComment(nextComment);
-    if (!moderation.isAllowed) {
-      setCommentMessage(moderation.message ?? "선넘었어요. 댓글을 다시 확인해 주세요.");
-      return;
-    }
-
-    if (!configuredResultShareService) {
-      setComments((currentComments) => [
-        {
-          id: `local-${Date.now()}`,
-          resultId: "local",
-          body: moderation.sanitizedText,
-          createdAt: new Date().toISOString(),
-        },
-        ...currentComments,
-      ].slice(0, 5));
-      setCommentDraft("");
-      setCommentMessage(null);
-      return;
-    }
-
+  const grantShareBonus = async () => {
     try {
-      setIsReactionPending(true);
-      const resultId = await ensureSharedResult();
-      if (!resultId) {
-        return;
-      }
-
-      const comment = await configuredResultShareService.addComment(
-        resultId,
-        moderation.sanitizedText,
-      );
-      setComments((currentComments) => [comment, ...currentComments].slice(0, 20));
+      await fetch("/api/usage/share-bonus", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          anonymousUserKey: getFreeJudgmentAnonymousUserKey(),
+        }),
+      });
     } catch {
-      setShareMessage("댓글을 저장하지 못했어요. 다시 시도해 주세요.");
-      return;
-    } finally {
-      setIsReactionPending(false);
-    }
-
-    setCommentDraft("");
-    setCommentMessage(null);
-  };
-
-  const handleLike = async () => {
-    const nextLiked = !hasLiked;
-
-    if (!configuredResultShareService) {
-      setHasLiked(nextLiked);
-      setLikeCount((currentLikeCount) =>
-        nextLiked ? currentLikeCount + 1 : Math.max(0, currentLikeCount - 1),
-      );
-      return;
-    }
-
-    try {
-      setIsReactionPending(true);
-      const resultId = await ensureSharedResult();
-      if (!resultId) {
-        return;
-      }
-
-      const nextLikeState = await configuredResultShareService.setLiked(
-        resultId,
-        nextLiked,
-      );
-      setHasLiked(nextLikeState.hasLiked);
-      setLikeCount(nextLikeState.likeCount);
-    } catch {
-      setShareMessage("좋아요를 저장하지 못했어요. 다시 시도해 주세요.");
-    } finally {
-      setIsReactionPending(false);
+      // Sharing should still succeed even if the quota bonus cannot be granted.
     }
   };
 
@@ -209,40 +130,15 @@ export function ResultScreen({
     return shareUrl;
   };
 
-  const handleShare = async () => {
-    const shareUrl = await createShareUrl();
-    if (shareUrl === null && configuredResultShareService) {
-      return;
-    }
-    const shareText = createShareText(shareUrl);
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: "누가 잘못 AI 판독 결과",
-          text: shareText,
-          url: shareUrl ?? undefined,
-        });
-      } else {
-        await navigator.clipboard.writeText(shareText);
-      }
-      setShareMessage(
-        shareUrl
-          ? "공유 가능한 판독 결과 링크를 준비했어요."
-          : "판독 결과를 공유할 수 있게 준비했어요.",
-      );
-    } catch {
-      setShareMessage("공유를 완료하지 못했어요. 다시 시도해 주세요.");
-    }
-  };
-
   const handleChannelShare = async (channel: "kakao" | "telegram" | "link") => {
-    const shareUrl = await createShareUrl();
-    if (shareUrl === null && configuredResultShareService) {
-      return;
-    }
-    const shareText = createShareText(shareUrl);
-
     try {
+      setIsReactionPending(true);
+      const shareUrl = await createShareUrl();
+      if (shareUrl === null && configuredResultShareService) {
+        return;
+      }
+      const shareText = createShareText(shareUrl);
+
       if (channel === "telegram") {
         await openURL(
           `https://t.me/share/url?url=${encodeURIComponent(
@@ -261,6 +157,8 @@ export function ResultScreen({
       );
     } catch {
       setShareMessage("공유를 완료하지 못했어요. 다시 시도해 주세요.");
+    } finally {
+      setIsReactionPending(false);
     }
   };
 
@@ -389,75 +287,40 @@ export function ResultScreen({
       ) : null}
 
       {!isSafetyResult ? (
-        <section className="result-comments-board" aria-label="판정 댓글">
-          <div className="result-comments-board__title-row">
-            <h2>
-              <strong>{comments.length}</strong>개의 댓글
-            </h2>
-            <button
-              type="button"
-              onClick={handleLike}
-              className={hasLiked ? "is-liked" : ""}
-              aria-pressed={hasLiked}
-              disabled={isReactionPending}
-            >
-              선넘었어요 {likeCount}
-            </button>
-          </div>
-          <h3>댓글쓰기</h3>
-          <form className="result-comment-form" onSubmit={handleCommentSubmit}>
-            <textarea
-              aria-label="판정 댓글"
-              value={commentDraft}
-              placeholder="타인을 배려하는 마음을 담아 댓글을 남겨주세요."
-              onChange={(event) => {
-                setCommentDraft(event.currentTarget.value);
-                setCommentMessage(null);
-              }}
-            />
-            <button
-              type="submit"
-              disabled={commentDraft.trim().length === 0 || isReactionPending}
-            >
-              등록
-            </button>
-          </form>
-          {commentMessage ? (
-            <p className="result-share-status" role="alert">
-              {commentMessage}
-            </p>
-          ) : null}
-          <ol className="result-comments">
-            {comments.map((comment) => (
-              <li key={comment.id}>
-                <p>{comment.body}</p>
-              </li>
-            ))}
-          </ol>
-          {comments.length === 0 ? (
-            <p className="result-comments-empty">
-              아직 댓글이 없어요. 판독 결과에 한마디를 남겨보세요.
-            </p>
-          ) : null}
-          <div className="result-share-actions" aria-label="판정 공유 방법">
-            <button type="button" disabled={isReactionPending} onClick={() => void handleChannelShare("kakao")}>
-              카톡 보내기
-            </button>
-            <button type="button" disabled={isReactionPending} onClick={() => void handleChannelShare("telegram")}>
-              텔레그램 보내기
-            </button>
-            <button type="button" disabled={isReactionPending} onClick={() => void handleChannelShare("link")}>
-              링크 보내기
-            </button>
+        <section className="result-ask-board" aria-label="사람들한테 물어보기">
+          <div className="result-ask-board__title-row">
+            <div>
+              <h2>사람들한테 물어보기</h2>
+              <p>공유하면 오늘의 핫 Battle에 올라가 의견을 받을 수 있어요.</p>
+            </div>
           </div>
           <button
             className="result-share-button"
             type="button"
             disabled={isReactionPending}
-            onClick={handleShare}
+            aria-expanded={isShareOptionsOpen}
+            aria-controls="result-share-options"
+            onClick={() => setIsShareOptionsOpen((isOpen) => !isOpen)}
           >
-            기본 공유 열기
+            다른 앱으로 공유하기
           </button>
+          {isShareOptionsOpen ? (
+            <div
+              className="result-share-actions"
+              id="result-share-options"
+              aria-label="판정 공유 방법"
+            >
+              <button type="button" disabled={isReactionPending} onClick={() => void handleChannelShare("kakao")}>
+                카톡 보내기
+              </button>
+              <button type="button" disabled={isReactionPending} onClick={() => void handleChannelShare("telegram")}>
+                텔레그램 보내기
+              </button>
+              <button type="button" disabled={isReactionPending} onClick={() => void handleChannelShare("link")}>
+                링크 보내기
+              </button>
+            </div>
+          ) : null}
           {shareMessage ? <p className="result-share-status">{shareMessage}</p> : null}
         </section>
       ) : null}
