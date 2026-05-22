@@ -94,7 +94,7 @@ export async function analyzeWithRules(input: AnalyzeInput): Promise<JudgmentRes
   const leadingPercent = Math.max(partyAPercent, partyBPercent);
 
   return {
-    verdict: `${leadingParty}가 ${leadingPercent}% 정도 더 선 넘었어요`,
+    verdict: `${leadingParty}가 ${leadingPercent}% 선넘었어요`,
     partyAPercent,
     partyBPercent,
     reasons: [

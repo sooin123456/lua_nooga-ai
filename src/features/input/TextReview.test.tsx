@@ -62,9 +62,13 @@ describe("TextReview", () => {
     expect(
       screen.getByRole("button", { name: "무료 판독 받기" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/루아 AI/)).toBeInTheDocument();
+    expect(screen.getByText("증거 확인")).toBeInTheDocument();
+    expect(screen.getByText("지금은 증거를 확인하는 단계예요")).toBeInTheDocument();
     expect(
-      screen.getByText("판독 전에 증거 내용을 확인하고 고칠 수 있어요."),
+      screen.getByText("내용을 고치고 무료 판독을 누르면 루아가 바로 분석을 시작해요."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("붙여넣은 내용만 확인하면 바로 판독으로 넘어가요."),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "무료 판독 받기" }));
@@ -100,7 +104,30 @@ describe("TextReview", () => {
     await user.type(textarea, "  A: 미안해\nB: 다시 이야기하자  ");
     await user.click(screen.getByRole("button", { name: "무료 판독 받기" }));
 
-    expect(onAnalyze).toHaveBeenCalledWith("A: 미안해\nB: 다시 이야기하자");
+    expect(onAnalyze).toHaveBeenCalledWith(
+      "A: 미안해\nB: 다시 이야기하자",
+      "unknown",
+    );
+  });
+
+  it("submits the selected first-person perspective", async () => {
+    const user = userEvent.setup();
+    const onAnalyze = vi.fn();
+
+    renderTextReview(
+      <TextReview
+        initialText="A: 미안해"
+        onAnalyze={onAnalyze}
+        onBack={vi.fn()}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "나는 첫 번째 사람이에요" }),
+    );
+    await user.click(screen.getByRole("button", { name: "무료 판독 받기" }));
+
+    expect(onAnalyze).toHaveBeenCalledWith("A: 미안해", "first");
   });
 
   it("prevents duplicate submits while analysis is pending", async () => {

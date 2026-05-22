@@ -1,6 +1,7 @@
-import { Button, Top } from "@toss/tds-mobile";
+import { Button } from "@toss/tds-mobile";
 import type { ClipboardEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import type { UserPerspective } from "../analyzer/types";
 
 type TextReviewProps = {
   initialText: string;
@@ -9,7 +10,10 @@ type TextReviewProps = {
   helperText?: string;
   mediaControl?: ReactNode;
   onPaste?: (event: ClipboardEvent<HTMLElement>) => void;
-  onAnalyze(text: string): void | Promise<void>;
+  onAnalyze(
+    text: string,
+    userPerspective: UserPerspective,
+  ): void | Promise<void>;
   onBack(): void;
 };
 
@@ -30,6 +34,8 @@ export function TextReview({
   const [error, setError] = useState("");
   const [isPending, setIsPending] = useState(false);
   const [hasUserEditedDraft, setHasUserEditedDraft] = useState(false);
+  const [userPerspective, setUserPerspective] =
+    useState<UserPerspective>("unknown");
   const isMountedRef = useRef(true);
   const lastInitialTextRef = useRef(initialText);
   const lastInitialTextSyncKeyRef = useRef(initialTextSyncKey);
@@ -80,7 +86,7 @@ export function TextReview({
     setIsPending(true);
 
     try {
-      await onAnalyze(trimmedText);
+      await onAnalyze(trimmedText, userPerspective);
     } catch {
       if (isMountedRef.current) {
         setError(submitFailureMessage);
@@ -96,24 +102,31 @@ export function TextReview({
 
   return (
     <main className="screen screen--review" onPaste={onPaste}>
-      <Top
-        title={
-          <Top.TitleParagraph size={22}>
-            루아 AI가 판독할 대화
-          </Top.TitleParagraph>
-        }
-        subtitleBottom={
-          <Top.SubtitleParagraph size={15}>
-            판독 전에 증거 내용을 확인하고 고칠 수 있어요.
-          </Top.SubtitleParagraph>
-        }
-      />
+      <header className="review-brief">
+        <button className="review-brief__back" type="button" onClick={onBack}>
+          돌아가기
+        </button>
+        <p>루아 AI 검사실</p>
+        <h1>증거 확인</h1>
+        <span>붙여넣은 내용만 확인하면 바로 판독으로 넘어가요.</span>
+      </header>
 
-      {helperText ? <p className="notice">{helperText}</p> : null}
+      <div className="review-progress-note" aria-label="루아 판독 진행 안내">
+        <strong>지금은 증거를 확인하는 단계예요</strong>
+        <span>내용을 고치고 무료 판독을 누르면 루아가 바로 분석을 시작해요.</span>
+      </div>
 
       <section className="text-review" aria-label="대화 내용 확인">
-        <label htmlFor="analysis-text">분석할 대화 내용</label>
+        <div className="text-review__header">
+          <label htmlFor="analysis-text">분석할 대화 내용</label>
+          <span>{text.trim().length}자</span>
+        </div>
         {mediaControl}
+        {helperText ? (
+          <p className="notice">
+            {helperText}
+          </p>
+        ) : null}
         <textarea
           id="analysis-text"
           aria-label="분석할 대화 내용"
@@ -138,10 +151,35 @@ export function TextReview({
         ) : null}
       </section>
 
+      <div
+        className="perspective-selector"
+        aria-label="내가 누구인지 선택"
+        title="이 대화에서 나는 누구예요?"
+      >
+        <button
+          type="button"
+          aria-pressed={userPerspective === "first"}
+          onClick={() => setUserPerspective("first")}
+        >
+          나는 첫 번째 사람이에요
+        </button>
+        <button
+          type="button"
+          aria-pressed={userPerspective === "second"}
+          onClick={() => setUserPerspective("second")}
+        >
+          나는 두 번째 사람이에요
+        </button>
+        <button
+          type="button"
+          aria-pressed={userPerspective === "unknown"}
+          onClick={() => setUserPerspective("unknown")}
+        >
+          잘 모르겠어요
+        </button>
+      </div>
+
       <div className="action-row">
-        <Button type="button" variant="weak" onClick={onBack}>
-          돌아가기
-        </Button>
         <Button type="button" disabled={isPending} onClick={handleSubmit}>
           {isPending ? "판독 중..." : "무료 판독 받기"}
         </Button>

@@ -23,13 +23,14 @@ beforeAll(() => {
 });
 
 const result: JudgmentResult = {
-  verdict: "A가 62% 정도 더 선 넘었어요",
+  verdict: "A가 62% 선넘었어요",
   partyAPercent: 62,
   partyBPercent: 38,
   reasons: ["감정 표현이 강했어요", "사과가 뒤따랐어요", "대화를 끝내려 했어요"],
   advice: "바로 결론내기보다 각자 원하는 걸 한 문장으로 말해보세요.",
   safetyLevel: "normal",
 };
+const normalResult = result;
 
 function ThemeWrapper({ children }: { children: ReactNode }) {
   return <ThemeProvider>{children}</ThemeProvider>;
@@ -40,15 +41,196 @@ function renderResultScreen(ui: ReactNode) {
 }
 
 describe("ResultScreen", () => {
-  it("shows verdict, percentages, exactly three reasons, advice, and disclaimer", () => {
-    renderResultScreen(<ResultScreen result={result} onRestart={vi.fn()} />);
+  it("shows verdict, reasons, advice, and two primary actions before sharing", () => {
+    renderResultScreen(
+      <ResultScreen
+        result={normalResult}
+        onRestart={vi.fn()}
+        onOpenRewardChat={vi.fn()}
+        resultShareService={null}
+      />,
+    );
 
-    expect(screen.getByText("오늘의 판결")).toBeInTheDocument();
-    expect(screen.getByText("판독 결과")).toBeInTheDocument();
+    expect(screen.getByText("오늘의 판정")).toBeInTheDocument();
+    expect(screen.queryByText("오늘의 판독")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "보상받기" })).toHaveClass(
+      "result-primary-action--reward",
+    );
+    expect(screen.getByRole("button", { name: "다시 판독하기" })).toBeInTheDocument();
+    expect(screen.getByText("사람들한테 물어보기")).toBeInTheDocument();
+  });
+
+  it("keeps precedent analysis folded behind a red objection CTA", () => {
+    renderResultScreen(
+      <ResultScreen
+        result={normalResult}
+        onRestart={vi.fn()}
+        onOpenRewardChat={vi.fn()}
+        resultShareService={null}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: /억울하면 유사 판례로 한 번 더 따져보기/ }),
+    ).toHaveClass("result-objection-cta");
+    expect(
+      screen.queryByLabelText("판례 분석 결제 전 확인"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens precedent objection confirmation with price and consent details", async () => {
+    const user = userEvent.setup();
+
+    renderResultScreen(
+      <ResultScreen
+        result={normalResult}
+        onRestart={vi.fn()}
+        onOpenRewardChat={vi.fn()}
+        resultShareService={null}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /억울하면 유사 판례로 한 번 더 따져보기/,
+      }),
+    );
+
+    const confirmation = screen.getByLabelText("판례 분석 결제 전 확인");
+    expect(confirmation).toHaveTextContent("990원");
+    expect(confirmation).toHaveTextContent("판독 대화 텍스트");
+    expect(confirmation).toHaveTextContent("법률 상담이 아닌 참고용 분석");
+    expect(confirmation).toHaveTextContent("유사 판례가 없을 수 있어요");
+    expect(
+      screen.getByRole("checkbox", {
+        name: "서버 전송과 참고용 분석에 동의합니다.",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "동의하고 분석하기" }),
+    ).toBeDisabled();
+  });
+
+  it("enables precedent analysis confirmation after consent is checked", async () => {
+    const user = userEvent.setup();
+
+    renderResultScreen(
+      <ResultScreen
+        result={normalResult}
+        onRestart={vi.fn()}
+        onRequestPrecedentJudgment={vi.fn()}
+        resultShareService={null}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /억울하면 유사 판례로 한 번 더 따져보기/,
+      }),
+    );
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: "서버 전송과 참고용 분석에 동의합니다.",
+      }),
+    );
+
+    expect(
+      screen.getByRole("button", { name: "동의하고 분석하기" }),
+    ).toBeEnabled();
+  });
+
+  it("runs the paid precedent judgment request after consent", async () => {
+    const user = userEvent.setup();
+    const onRequestPrecedentJudgment = vi.fn().mockResolvedValue(undefined);
+
+    renderResultScreen(
+      <ResultScreen
+        result={normalResult}
+        onRestart={vi.fn()}
+        onRequestPrecedentJudgment={onRequestPrecedentJudgment}
+        resultShareService={null}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /억울하면 유사 판례로 한 번 더 따져보기/,
+      }),
+    );
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: "서버 전송과 참고용 분석에 동의합니다.",
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: "동의하고 분석하기" }));
+
+    expect(onRequestPrecedentJudgment).toHaveBeenCalledTimes(1);
+    expect(
+      await screen.findByText("결제 확인 후 판례 AI가 다시 따져보고 있어요."),
+    ).toBeInTheDocument();
+  });
+
+  it("resets precedent consent after the confirmation is closed and reopened", async () => {
+    const user = userEvent.setup();
+
+    renderResultScreen(
+      <ResultScreen
+        result={normalResult}
+        onRestart={vi.fn()}
+        onRequestPrecedentJudgment={vi.fn()}
+        resultShareService={null}
+      />,
+    );
+
+    const objectionCta = screen.getByRole("button", {
+      name: /억울하면 유사 판례로 한 번 더 따져보기/,
+    });
+
+    await user.click(objectionCta);
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: "서버 전송과 참고용 분석에 동의합니다.",
+      }),
+    );
+    expect(
+      screen.getByRole("button", { name: "동의하고 분석하기" }),
+    ).toBeEnabled();
+
+    await user.click(objectionCta);
+    expect(
+      screen.queryByLabelText("판례 분석 결제 전 확인"),
+    ).not.toBeInTheDocument();
+
+    await user.click(objectionCta);
+
+    expect(
+      screen.getByRole("checkbox", {
+        name: "서버 전송과 참고용 분석에 동의합니다.",
+      }),
+    ).not.toBeChecked();
+    expect(
+      screen.getByRole("button", { name: "동의하고 분석하기" }),
+    ).toBeDisabled();
+  });
+
+  it("shows verdict, percentages, exactly three reasons, advice, and disclaimer", () => {
+    renderResultScreen(
+      <ResultScreen
+        result={result}
+        resultShareService={null}
+        onRestart={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("오늘의 판정")).toBeInTheDocument();
+    expect(screen.queryByText("오늘의 판독")).not.toBeInTheDocument();
     expect(screen.getByText(result.verdict)).toBeInTheDocument();
     expect(screen.getByText("A 62%")).toBeInTheDocument();
     expect(screen.getByText("B 38%")).toBeInTheDocument();
     expect(screen.getByLabelText("A 62%, B 38%")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("판례를 두드리는 망치 판정 이펙트"),
+    ).toBeInTheDocument();
     expect(screen.getByText("증거 1")).toBeInTheDocument();
     expect(screen.getByText("증거 2")).toBeInTheDocument();
     expect(screen.getByText("증거 3")).toBeInTheDocument();
@@ -63,6 +245,7 @@ describe("ResultScreen", () => {
     expect(
       screen.getByText(/입력된 내용 기준의 재미용 판독/),
     ).toBeInTheDocument();
+    expect(screen.queryByText("억울하면 판례로 다시 따지기")).not.toBeInTheDocument();
   });
 
   it("calls onRestart when the restart button is pressed", async () => {
@@ -76,32 +259,35 @@ describe("ResultScreen", () => {
     expect(onRestart).toHaveBeenCalledTimes(1);
   });
 
-  it("recommends a Toss Shopping reward from the winner wish", async () => {
+  it("opens the Lua reward chat from the bottom reward action", async () => {
     const user = userEvent.setup();
-    renderResultScreen(<ResultScreen result={result} onRestart={vi.fn()} />);
+    const onOpenRewardChat = vi.fn();
+    renderResultScreen(
+      <ResultScreen
+        result={result}
+        resultShareService={null}
+        onRestart={vi.fn()}
+        onOpenRewardChat={onOpenRewardChat}
+      />,
+    );
 
-    await user.type(screen.getByLabelText("이긴 사람이 받고 싶은 것"), "달달한 거");
-    await user.click(screen.getByRole("button", { name: "보상 추천 받기" }));
+    await user.click(screen.getByRole("button", { name: "보상받기" }));
 
-    expect(screen.getByText("디저트/간식")).toBeInTheDocument();
-    expect(screen.getByText("초콜릿 · 마카롱 · 케이크")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "토스 쇼핑 연결 준비 중" }),
-    ).toBeDisabled();
-    expect(screen.getByRole("status")).toHaveTextContent("디저트/간식");
+    expect(onOpenRewardChat).toHaveBeenCalledTimes(1);
   });
 
-  it("supports Enter submission and clears stale reward results on edit", async () => {
-    const user = userEvent.setup();
-    renderResultScreen(<ResultScreen result={result} onRestart={vi.fn()} />);
+  it("disables the reward chat CTA when no route handler is provided", () => {
+    renderResultScreen(
+      <ResultScreen
+        result={result}
+        resultShareService={null}
+        onRestart={vi.fn()}
+      />,
+    );
 
-    const input = screen.getByLabelText("이긴 사람이 받고 싶은 것");
-
-    await user.type(input, "커피{Enter}");
-    expect(screen.getByRole("status")).toHaveTextContent("커피/음료");
-
-    await user.type(input, "랑 케이크");
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "보상받기" }),
+    ).toBeDisabled();
   });
 
   it("does not show shopping reward flow for safety results", () => {
@@ -112,25 +298,134 @@ describe("ResultScreen", () => {
       />,
     );
 
-    expect(screen.queryByLabelText("이긴 사람이 받고 싶은 것")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "보상받기" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("opens the 990원 precedent setup panel without charging", async () => {
-    const user = userEvent.setup();
-    renderResultScreen(<ResultScreen result={result} onRestart={vi.fn()} />);
-
-    expect(
-      screen.getByText("아직 결제되지 않아요. 결제 연결 전 준비 화면이에요."),
-    ).toBeInTheDocument();
-
-    await user.click(
-      screen.getByRole("button", { name: "결제 없이 판례 판독 미리보기" }),
+  it("does not show share or objection actions for safety results", () => {
+    renderResultScreen(
+      <ResultScreen
+        result={{ ...result, safetyLevel: "caution" }}
+        resultShareService={null}
+        onRestart={vi.fn()}
+      />,
     );
 
-    expect(screen.getByText("990원 판례 판독")).toBeInTheDocument();
-    expect(screen.getByText("인앱결제 연결 예정")).toBeInTheDocument();
-    expect(screen.getByText("판례 검색 서버 연결 예정")).toBeInTheDocument();
-    expect(screen.getByText(/법률 판단은 사건의 구체적 사실관계/)).toBeInTheDocument();
+    expect(screen.queryByText("댓글쓰기")).not.toBeInTheDocument();
+    expect(screen.queryByText("사람들한테 물어보기")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "판정 공유하기" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "카톡 보내기" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: /억울하면 유사 판례로 한 번 더 따져보기/,
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("supports asking people by sharing", async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: undefined,
+    });
+    renderResultScreen(
+      <ResultScreen
+        result={result}
+        resultShareService={null}
+        onRestart={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "사람들한테 물어보기" })).toBeInTheDocument();
+    expect(screen.getByText(/오늘의 핫 Battle에 올라가 의견/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "카톡 보내기" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "다른 앱으로 공유하기" }));
+    expect(screen.getByRole("button", { name: "카톡 보내기" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "텔레그램 보내기" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "링크 보내기" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "링크 보내기" }));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining(result.verdict));
+    expect(screen.getByText("공유 링크를 복사했어요.")).toBeInTheDocument();
+  });
+
+  it("stores a shared result before link sharing", async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const resultShareService = {
+      createSharedResult: vi.fn().mockResolvedValue({
+        id: "shared-1",
+        result,
+        createdAt: "2026-05-20T12:00:00.000Z",
+        expiresAt: "2026-05-27T12:00:00.000Z",
+      }),
+      getSharedResult: vi.fn(),
+      listComments: vi.fn().mockResolvedValue([]),
+      addComment: vi.fn().mockResolvedValue({
+        id: "comment-1",
+        resultId: "shared-1",
+        body: "서버 댓글",
+        createdAt: "2026-05-20T12:00:01.000Z",
+      }),
+      getLikeState: vi.fn().mockResolvedValue({
+        likeCount: 0,
+        hasLiked: false,
+      }),
+      setLiked: vi.fn().mockResolvedValue({
+        likeCount: 1,
+        hasLiked: true,
+      }),
+      reportResult: vi.fn(),
+      listHotBattles: vi.fn(),
+    };
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: undefined,
+    });
+
+    renderResultScreen(
+      <ResultScreen
+        result={result}
+        sourceText="A: 늦어서 미안"
+        resultShareService={resultShareService}
+        onRestart={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "다른 앱으로 공유하기" }));
+    await user.click(screen.getByRole("button", { name: "링크 보내기" }));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("result=shared-1"));
+    expect(resultShareService.createSharedResult).toHaveBeenCalledWith(result, {
+      sourceText: "A: 늦어서 미안",
+    });
+    expect(resultShareService.setLiked).not.toHaveBeenCalled();
+    expect(resultShareService.addComment).not.toHaveBeenCalled();
+    expect(screen.getByText("공유 링크를 복사했어요.")).toBeInTheDocument();
+  });
+
+  it("does not show the objection precedent confirmation before CTA is opened", () => {
+    renderResultScreen(
+      <ResultScreen
+        result={result}
+        sourceText="A: 너 때문이야"
+        onRestart={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByLabelText("판례 분석 결제 전 확인"),
+    ).not.toBeInTheDocument();
   });
 
   it("does not show premium precedent CTA for safety results", () => {
@@ -142,7 +437,7 @@ describe("ResultScreen", () => {
     );
 
     expect(
-      screen.queryByRole("button", { name: "결제 없이 판례 판독 미리보기" }),
+      screen.queryByRole("button", { name: "990원 내고 판례로 다시 따지기" }),
     ).not.toBeInTheDocument();
   });
 });

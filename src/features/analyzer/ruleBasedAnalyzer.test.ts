@@ -23,6 +23,7 @@ describe("analyzeWithRules", () => {
     expect(result.partyAPercent).toBeLessThanOrEqual(95);
     expect(result.partyBPercent).toBeGreaterThanOrEqual(5);
     expect(result.partyBPercent).toBeLessThanOrEqual(95);
+    expect(result.verdict).toMatch(/[AB]가 \d+% 선넘었어요/);
   });
 
   it("prioritizes urgent safety signals over normal judgment", async () => {
