@@ -26,6 +26,7 @@ export type RewardCandidate = {
   query: string;
   shoppingUrl: string;
   priceHint: string;
+  priceText: string;
   message: string;
 };
 
@@ -42,6 +43,7 @@ type RewardTier = {
   severity: RewardSeverity;
   severityLabel: string;
   priceBand: string;
+  prices: readonly [string, string, string];
 };
 
 const rewardRules: Array<{
@@ -150,6 +152,7 @@ function getRewardTier(blamePercent: number): RewardTier {
       severity: "serious",
       severityLabel: "확실한 사과가 필요한 판정",
       priceBand: "3만원대",
+      prices: ["31,900원", "34,900원", "39,000원"],
     };
   }
 
@@ -158,6 +161,7 @@ function getRewardTier(blamePercent: number): RewardTier {
       severity: "fair",
       severityLabel: "적정 보상이 어울리는 판정",
       priceBand: "1~2만원대",
+      prices: ["14,900원", "16,900원", "19,900원"],
     };
   }
 
@@ -165,6 +169,7 @@ function getRewardTier(blamePercent: number): RewardTier {
     severity: "light",
     severityLabel: "가벼운 사과로 충분한 판정",
     priceBand: "5천원대",
+    prices: ["4,900원", "5,500원", "5,900원"],
   };
 }
 
@@ -222,6 +227,7 @@ export function createRewardChatRecommendation({
       query: firstTerm,
       shoppingUrl: createShoppingSearchUrl(firstTerm),
       priceHint: rewardTier.priceBand,
+      priceText: rewardTier.prices[0],
       message: "가볍게 풀 수 있는 정도의 토스 상품이에요.",
     },
     {
@@ -230,6 +236,7 @@ export function createRewardChatRecommendation({
       query: secondTerm,
       shoppingUrl: createShoppingSearchUrl(secondTerm),
       priceHint: rewardTier.priceBand,
+      priceText: rewardTier.prices[1],
       message: "잘못 정도와 부담감을 맞춘 중간 보상이에요.",
     },
     {
@@ -238,6 +245,7 @@ export function createRewardChatRecommendation({
       query: thirdTerm,
       shoppingUrl: createShoppingSearchUrl(thirdTerm),
       priceHint: rewardTier.priceBand,
+      priceText: rewardTier.prices[2],
       message: "상대가 아직 서운할 때 확실히 마음을 보여주는 상품이에요.",
     },
   ] as const;

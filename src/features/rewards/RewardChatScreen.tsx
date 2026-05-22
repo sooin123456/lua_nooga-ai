@@ -3,6 +3,7 @@ import { Button, Top } from "@toss/tds-mobile";
 import type { JudgmentResult } from "../analyzer/types";
 import {
   createRewardChatRecommendation,
+  openRewardCandidate,
   type RewardCandidate,
   type RewardChatRecommendation,
 } from "./rewardAdapter";
@@ -18,7 +19,7 @@ function createShareText(candidate: RewardCandidate, recommendation: RewardChatR
   return [
     "루아 AI 보상 판결",
     `${recommendation.blamedParty}가 ${recommendation.blamePercent}% 선넘었어요.`,
-    `${candidate.tone}: ${candidate.title} (${candidate.priceHint})`,
+    `${candidate.tone}: ${candidate.title} (${candidate.priceText})`,
     candidate.message,
     candidate.shoppingUrl,
   ].join("\n");
@@ -112,6 +113,15 @@ export function RewardChatScreen({ result, onBack, onHome }: RewardChatScreenPro
     }
   };
 
+  const handleOpenCandidate = async (candidate: RewardCandidate) => {
+    try {
+      await openRewardCandidate(candidate);
+      setStatusMessage("토스 쇼핑에서 상품 후보를 열었어요.");
+    } catch {
+      setStatusMessage("상품 링크를 열지 못했어요. 다시 시도해 주세요.");
+    }
+  };
+
   return (
     <main className="screen reward-chat-screen">
       <Top
@@ -182,12 +192,22 @@ export function RewardChatScreen({ result, onBack, onHome }: RewardChatScreenPro
                     checked={selectedTones.includes(candidate.tone)}
                     onChange={() => toggleCandidate(candidate.tone)}
                   />
+                  <span
+                    className={`reward-candidate-card__thumb reward-candidate-card__thumb--${recommendation.severity}`}
+                    aria-hidden="true"
+                  />
                   <span className="reward-candidate-card__source">토스 상품 추천</span>
                   <span className="reward-candidate-card__tone">{candidate.tone}</span>
                   <strong>{candidate.title}</strong>
-                  <em>{candidate.priceHint}</em>
+                  <em>{candidate.priceText}</em>
                   <small>{candidate.message}</small>
                 </label>
+                <button
+                  type="button"
+                  onClick={() => void handleOpenCandidate(candidate)}
+                >
+                  토스 쇼핑에서 보기
+                </button>
               </li>
             ))}
           </ol>

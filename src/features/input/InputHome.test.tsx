@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { InputHome } from "./InputHome";
@@ -14,14 +14,23 @@ describe("InputHome", () => {
     );
 
     expect(screen.getByText("루아 AI")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /오늘의 핫 Battle/ })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /오늘의 핫 Battle 오늘의 판/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /최근 대화 기록 보기/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /판정방 만들기 초대하기/ }),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByText("연락 늦게 봤다 vs 말투가 셌다"),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("둘이 같이 판정받기")).not.toBeInTheDocument();
     expect(screen.queryByText("60초 안에 각자 말하고 결과만 남겨요.")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "최근 판정" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /루아가 직접 화해의 상품을 추천해요/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "최근 판정" })).not.toBeInTheDocument();
+    expect(screen.getAllByText("최근").length).toBeGreaterThan(0);
+    expect(screen.getByText("루아가 직접 화해의 상품을 추천해요")).toBeInTheDocument();
     expect(screen.queryByText("억울하면 판례로 다시 따지기")).not.toBeInTheDocument();
     expect(screen.getByText(/현재 무료 판독은 입력 내용을/)).toBeInTheDocument();
     expect(screen.getByText(/재미용 판독이며/)).toBeInTheDocument();
@@ -49,9 +58,6 @@ describe("InputHome", () => {
     expect(
       screen.getByRole("button", { name: /녹음 파일 불러오기/ }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /실시간 판정방 만들기/ }),
-    ).toBeInTheDocument();
   });
 
   it("opens hot battle ranking as a separate page", async () => {
@@ -65,17 +71,14 @@ describe("InputHome", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /오늘의 핫 Battle/ }));
+    await user.click(screen.getByRole("button", { name: "핫 Battle" }));
 
-    expect(screen.getByRole("heading", { name: "Top 3" })).toBeInTheDocument();
-    expect(screen.getByText("올라온 리스트")).toBeInTheDocument();
-    expect(screen.getByText("1위")).toBeInTheDocument();
-    expect(screen.getByText("2위")).toBeInTheDocument();
-    expect(screen.getByText("3위")).toBeInTheDocument();
-    expect(screen.getByText("🥇")).toBeInTheDocument();
-    expect(screen.getByText("🥈")).toBeInTheDocument();
-    expect(screen.getByText("🥉")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "자세히 보기" })).toHaveLength(3);
+    expect(screen.getAllByText("오늘의 판").length).toBeGreaterThan(0);
+    expect(screen.getByText("루아의 선택 명예의 전당")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "2026.05.21" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "오늘의 톡" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /연락 늦게 봤다 vs 말투가 셌다/ })).toHaveLength(1);
+    expect(screen.getByRole("button", { name: /약속 시간 20분 지각 사건/ })).toBeInTheDocument();
   });
 
   it("shows a floating bottom tabbar for the home dashboard", () => {
@@ -116,9 +119,9 @@ describe("InputHome", () => {
       "aria-current",
       "page",
     );
-    expect(screen.getByText("1위")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Top 3" })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "자세히 보기" })).toHaveLength(3);
+    expect(screen.getAllByText("오늘의 판").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "2026.05.21" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /연락 늦게 봤다 vs 말투가 셌다/ })).toBeInTheDocument();
   });
 
   it("starts the judgment room from the bottom tabbar", async () => {
@@ -150,10 +153,10 @@ describe("InputHome", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "핫 Battle" }));
-    await user.click(screen.getAllByRole("button", { name: "자세히 보기" })[0]);
+    await user.click(screen.getByRole("button", { name: /연락 늦게 봤다 vs 말투가 셌다/ }));
     await user.click(screen.getByRole("button", { name: "홈" }));
 
-    expect(screen.getByRole("button", { name: /오늘의 핫 Battle/ })).toBeInTheDocument();
+    expect(screen.getByText("루아 AI")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "대화 내용" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "홈" })).toHaveAttribute(
       "aria-current",
@@ -172,8 +175,8 @@ describe("InputHome", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /오늘의 핫 Battle/ }));
-    await user.click(screen.getAllByRole("button", { name: "자세히 보기" })[1]);
+    await user.click(screen.getByRole("button", { name: "핫 Battle" }));
+    await user.click(screen.getByRole("button", { name: /약속 시간 20분 지각 사건/ }));
 
     expect(screen.getByRole("heading", { name: "루아 판정" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "대화 내용" })).toBeInTheDocument();
@@ -184,7 +187,9 @@ describe("InputHome", () => {
     expect(screen.getByText("A: 거의 다 왔어?")) .toBeInTheDocument();
     expect(screen.getByText("B: 미안, 20분 늦을 것 같아.")) .toBeInTheDocument();
 
-    await user.type(screen.getByLabelText("핫 Battle 댓글"), "이건 B가 좀 셌다");
+    fireEvent.change(screen.getByLabelText("핫 Battle 댓글"), {
+      target: { value: "이건 B가 좀 셌다" },
+    });
     await user.click(screen.getByRole("button", { name: "등록" }));
 
     expect(screen.getByText(/댓글 6/)).toBeInTheDocument();
@@ -206,7 +211,7 @@ describe("InputHome", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "핫 Battle" }));
-    await user.click(screen.getAllByRole("button", { name: "자세히 보기" })[0]);
+    await user.click(screen.getByRole("button", { name: /연락 늦게 봤다 vs 말투가 셌다/ }));
 
     const summaryTitle = screen.getByRole("heading", {
       name: "연락 늦게 봤다 vs 말투가 셌다",
@@ -222,7 +227,9 @@ describe("InputHome", () => {
     }
     expect(within(summaryArticle).getByText("1위")).toBeInTheDocument();
     expect(within(summaryArticle).getByText("댓글 8")).toBeInTheDocument();
-    expect(within(summaryArticle).getByText("좋아요 21")).toBeInTheDocument();
+    expect(
+      within(summaryArticle).getByRole("button", { name: "선넘었어요 21" }),
+    ).toBeInTheDocument();
     expect(
       summaryArticle.compareDocumentPosition(conversationHeading) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -266,7 +273,7 @@ describe("InputHome", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /실시간 판정방 만들기/ }));
+    await user.click(screen.getByRole("button", { name: "판정방" }));
 
     expect(onCreateRoom).toHaveBeenCalledOnce();
   });
@@ -279,6 +286,7 @@ describe("InputHome", () => {
       addComment: vi.fn(),
       getLikeState: vi.fn(),
       setLiked: vi.fn(),
+      reportResult: vi.fn(),
       listHotBattles: vi.fn().mockResolvedValue([
         {
           id: "hot-1",
@@ -355,13 +363,102 @@ describe("InputHome", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: /오늘의 핫 Battle/ }));
+    await userEvent.click(screen.getByRole("button", { name: "핫 Battle" }));
     expect(await screen.findByText("실시간 공유 결과 기준으로 집계했어요.")).toBeInTheDocument();
 
     expect(screen.getAllByText("B가 73% 선넘었어요").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/댓글 4/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/좋아요 9/).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /지각 설명이 늦었어요 사과가 부족했어요/ })).toHaveTextContent("(9)");
     expect(screen.queryByText("A가 51% 선넘었어요")).not.toBeInTheDocument();
+  });
+
+  it("uses server comments, reactions, and reports on hot Battle detail", async () => {
+    const user = userEvent.setup();
+    const resultShareService = {
+      createSharedResult: vi.fn(),
+      getSharedResult: vi.fn(),
+      listComments: vi.fn().mockResolvedValue([
+        {
+          id: "comment-1",
+          resultId: "hot-1",
+          body: "서버 댓글이 먼저 보여요",
+          createdAt: "2026-05-21T00:00:01.000Z",
+        },
+      ]),
+      addComment: vi.fn().mockResolvedValue({
+        id: "comment-2",
+        resultId: "hot-1",
+        body: "실시간 댓글",
+        createdAt: "2026-05-21T00:00:02.000Z",
+      }),
+      getLikeState: vi.fn().mockResolvedValue({
+        likeCount: 9,
+        hasLiked: false,
+      }),
+      setLiked: vi.fn().mockResolvedValue({
+        likeCount: 10,
+        hasLiked: true,
+      }),
+      reportResult: vi.fn().mockResolvedValue(undefined),
+      listHotBattles: vi.fn().mockResolvedValue([
+        {
+          id: "hot-1",
+          result: {
+            verdict: "B가 73% 선넘었어요",
+            partyAPercent: 27,
+            partyBPercent: 73,
+            reasons: ["지각 설명이 늦었어요", "사과가 부족했어요", "말투가 셌어요"],
+            advice: "먼저 늦은 이유부터 짧게 말해요.",
+            safetyLevel: "normal",
+          },
+          createdAt: "2026-05-21T00:00:00.000Z",
+          expiresAt: "2026-05-28T00:00:00.000Z",
+          commentCount: 4,
+          likeCount: 9,
+          score: 30,
+        },
+      ]),
+    };
+
+    render(
+      <InputHome
+        resultShareService={resultShareService}
+        onCreateRoom={vi.fn()}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "핫 Battle" }));
+    await user.click(await screen.findByRole("button", { name: /B가 73% 선넘었어요/ }));
+
+    expect(await screen.findByText("서버 댓글이 먼저 보여요")).toBeInTheDocument();
+    expect(resultShareService.listComments).toHaveBeenCalledWith("hot-1");
+    expect(resultShareService.getLikeState).toHaveBeenCalledWith("hot-1");
+
+    await user.click(screen.getByRole("button", { name: "선넘었어요 9" }));
+
+    expect(resultShareService.setLiked).toHaveBeenCalledWith("hot-1", true);
+    expect(await screen.findByRole("button", { name: "선넘었어요 10" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    fireEvent.change(screen.getByLabelText("핫 Battle 댓글"), {
+      target: { value: "실시간 댓글" },
+    });
+    await user.click(screen.getByRole("button", { name: "등록" }));
+
+    expect(resultShareService.addComment).toHaveBeenCalledWith("hot-1", "실시간 댓글");
+    expect(await screen.findByText("실시간 댓글")).toBeInTheDocument();
+    expect(screen.getByText(/댓글 5/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "신고" }));
+
+    expect(resultShareService.reportResult).toHaveBeenCalledWith(
+      "hot-1",
+      "inappropriate",
+    );
+    expect(await screen.findByText(/신고가 접수됐어요/)).toBeInTheDocument();
   });
 
   it("opens a real recent page from the bottom tabbar", async () => {

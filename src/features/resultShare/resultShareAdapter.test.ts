@@ -105,6 +105,7 @@ describe("resultShareAdapter", () => {
       addComment: vi.fn(),
       getLikeState: vi.fn(),
       setLiked: vi.fn(),
+      reportResult: vi.fn(),
       listHotBattles: vi.fn(),
     };
     const fetcher = vi.fn().mockResolvedValue({
@@ -148,6 +149,7 @@ describe("resultShareAdapter", () => {
       addComment: vi.fn(),
       getLikeState: vi.fn(),
       setLiked: vi.fn(),
+      reportResult: vi.fn(),
       listHotBattles: vi.fn(),
     };
     const service = createResultShareService({
@@ -184,6 +186,7 @@ describe("resultShareAdapter", () => {
       likeCount: 4,
       hasLiked: true,
     });
+    await expect(gateway.reportResult("result-1", "inappropriate")).resolves.toBeUndefined();
     await expect(gateway.listHotBattles()).resolves.toEqual([
       expect.objectContaining({
         id: "result-1",
@@ -200,6 +203,11 @@ describe("resultShareAdapter", () => {
     expect(supabase.rpc).toHaveBeenCalledWith("set_result_like", {
       p_client_key: expect.any(String),
       p_liked: true,
+      p_result_id: "result-1",
+    });
+    expect(supabase.rpc).toHaveBeenCalledWith("report_result", {
+      p_client_key: expect.any(String),
+      p_reason: "inappropriate",
       p_result_id: "result-1",
     });
     expect("from" in supabase).toBe(false);

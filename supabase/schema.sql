@@ -86,6 +86,15 @@ create table if not exists public.result_likes (
   primary key (result_id, client_key)
 );
 
+create table if not exists public.result_reports (
+  id uuid primary key default gen_random_uuid(),
+  result_id uuid not null references public.judgment_results(id) on delete cascade,
+  client_key text not null check (char_length(client_key) between 12 and 120),
+  reason text not null check (char_length(reason) between 1 and 120),
+  created_at timestamptz not null default now(),
+  unique (result_id, client_key)
+);
+
 create table if not exists public.anonymous_users (
   anonymous_user_key text primary key,
   created_at timestamptz not null default now(),
@@ -111,6 +120,7 @@ alter table public.room_messages enable row level security;
 alter table public.judgment_results enable row level security;
 alter table public.result_comments enable row level security;
 alter table public.result_likes enable row level security;
+alter table public.result_reports enable row level security;
 alter table public.anonymous_users enable row level security;
 alter table public.daily_ai_usage enable row level security;
 
@@ -120,6 +130,7 @@ revoke all on public.room_messages from anon, authenticated;
 revoke all on public.judgment_results from anon, authenticated;
 revoke all on public.result_comments from anon, authenticated;
 revoke all on public.result_likes from anon, authenticated;
+revoke all on public.result_reports from anon, authenticated;
 revoke all on public.anonymous_users from anon, authenticated;
 revoke all on public.daily_ai_usage from anon, authenticated;
 
@@ -820,6 +831,44 @@ as $$
   limit greatest(1, least(coalesce(p_limit, 5), 20));
 $$;
 
+create or replace function public.report_result(
+  p_result_id uuid,
+  p_client_key text,
+  p_reason text default 'inappropriate'
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  clean_reason text := trim(coalesce(p_reason, 'inappropriate'));
+begin
+  if char_length(p_client_key) not between 12 and 120 then
+    raise exception 'invalid client key';
+  end if;
+
+  if char_length(clean_reason) not between 1 and 120 then
+    raise exception 'invalid report reason';
+  end if;
+
+  if not exists (
+    select 1
+    from public.judgment_results
+    where judgment_results.id = p_result_id
+      and judgment_results.expires_at > now()
+  ) then
+    raise exception 'shared result not found';
+  end if;
+
+  insert into public.result_reports (result_id, client_key, reason)
+  values (p_result_id, p_client_key, clean_reason)
+  on conflict (result_id, client_key)
+  do update set reason = excluded.reason,
+                created_at = now();
+end;
+$$;
+
 create or replace function public.consume_free_judgment_use(
   p_anonymous_user_key text,
   p_usage_date date,
@@ -1002,6 +1051,7 @@ revoke all on function public.add_result_comment(uuid, text) from public;
 revoke all on function public.get_result_like_state(uuid, text) from public;
 revoke all on function public.set_result_like(uuid, text, boolean) from public;
 revoke all on function public.list_hot_battles(integer) from public;
+revoke all on function public.report_result(uuid, text, text) from public;
 revoke all on function public.consume_free_judgment_use(text, date, integer) from public, anon, authenticated;
 revoke all on function public.refund_free_judgment_use(text, date, integer) from public, anon, authenticated;
 revoke all on function public.grant_free_judgment_share_bonus(text, date, integer) from public, anon, authenticated;
@@ -1021,6 +1071,7 @@ grant execute on function public.add_result_comment(uuid, text) to anon, authent
 grant execute on function public.get_result_like_state(uuid, text) to anon, authenticated;
 grant execute on function public.set_result_like(uuid, text, boolean) to anon, authenticated;
 grant execute on function public.list_hot_battles(integer) to anon, authenticated;
+grant execute on function public.report_result(uuid, text, text) to anon, authenticated;
 grant execute on function public.consume_free_judgment_use(text, date, integer) to service_role;
 grant execute on function public.refund_free_judgment_use(text, date, integer) to service_role;
 grant execute on function public.grant_free_judgment_share_bonus(text, date, integer) to service_role;
@@ -1032,6 +1083,7 @@ drop policy if exists "public can add active result comments" on public.result_c
 drop policy if exists "public can read active result likes" on public.result_likes;
 drop policy if exists "public can add active result likes" on public.result_likes;
 drop policy if exists "public can remove own result likes" on public.result_likes;
+drop policy if exists "public can report active result" on public.result_reports;
 
 create policy "deny direct judgment result reads"
   on public.judgment_results
@@ -1045,6 +1097,11 @@ create policy "deny direct result comment reads"
 
 create policy "deny direct result like reads"
   on public.result_likes
+  for select
+  using (false);
+
+create policy "deny direct result report reads"
+  on public.result_reports
   for select
   using (false);
 

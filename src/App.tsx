@@ -6,9 +6,10 @@ import { analyzeWithAi } from "./features/analyzer/freeJudgmentAdapter";
 import { analyzeWithRules } from "./features/analyzer/ruleBasedAnalyzer";
 import type { JudgmentResult, UserPerspective } from "./features/analyzer/types";
 import {
-  manualTranscriptionAdapter,
-  type TranscriptionSource,
+  audioTranscriptionFailureMessage,
+  transcribeAudioFile,
 } from "./features/audio/audioAdapter";
+import { RecordingControl } from "./features/audio/RecordingControl";
 import { InputHome } from "./features/input/InputHome";
 import { IntroScreen } from "./features/input/IntroScreen";
 import { inputMethods, type InputMethod } from "./features/input/inputMethods";
@@ -632,7 +633,13 @@ function App() {
   };
 
   const explodeRoom = useCallback(async () => {
-    if (state.screen !== "room" || !state.room || state.isExploding) {
+    if (
+      state.screen !== "room" ||
+      !state.room ||
+      !state.currentParticipant ||
+      state.currentParticipant.role === "spectator" ||
+      state.isExploding
+    ) {
       return;
     }
 
@@ -646,7 +653,14 @@ function App() {
         : currentState,
     );
 
-    const result = await analyzeWithRules({ text: transcript });
+    const aiJudgment = await analyzeWithAi({
+      text: transcript,
+      userPerspective: "unknown",
+    });
+    const result =
+      aiJudgment.status === "ready" || aiJudgment.status === "fallback"
+        ? aiJudgment.result
+        : await analyzeWithRules({ text: transcript });
 
     try {
       await roomServiceRef.current?.explodeRoom({
@@ -848,6 +862,8 @@ function App() {
       state.room.startedAt &&
       state.remainingSeconds === 0 &&
       !state.isExploding &&
+      state.currentParticipant &&
+      state.currentParticipant.role !== "spectator" &&
       state.messages.length > 0
     ) {
       void explodeRoom();
@@ -954,15 +970,9 @@ function App() {
     void processScreenshotImage(file, reviewId);
   };
 
-  const updateAudioHelper = async (
-    reviewId: number,
-    input: TranscriptionSource,
-  ) => {
-    const helperText = await manualTranscriptionAdapter.transcribe(input);
-
-    if (reviewId !== activeReviewIdRef.current) {
-      return;
-    }
+  const updateAudioTranscript = async (reviewId: number, file: File) => {
+    const audioSyncKey = ocrSyncKeyRef.current + 1;
+    ocrSyncKeyRef.current = audioSyncKey;
 
     setState((currentState) => {
       if (
@@ -974,8 +984,43 @@ function App() {
 
       return {
         ...currentState,
-        helperText,
-        audioFileName: input.source === "file" ? input.file.name : undefined,
+        helperText: "음성을 텍스트로 바꾸는 중이에요.",
+        audioFileName: file.name || "녹음 파일",
+        isOcrPending: true,
+        ocrSyncKey: audioSyncKey,
+      };
+    });
+
+    const transcription = await transcribeAudioFile({ file });
+
+    if (reviewId !== activeReviewIdRef.current) {
+      return;
+    }
+
+    setState((currentState) => {
+      if (
+        currentState.screen !== "review" ||
+        currentState.reviewId !== reviewId ||
+        currentState.ocrSyncKey !== audioSyncKey
+      ) {
+        return currentState;
+      }
+
+      if (transcription.status !== "ready") {
+        return {
+          ...currentState,
+          helperText:
+            transcription.message || audioTranscriptionFailureMessage,
+          isOcrPending: false,
+        };
+      }
+
+      return {
+        ...currentState,
+        initialText: transcription.text,
+        helperText: "음성을 텍스트로 바꿨어요. 필요하면 말투만 살짝 다듬어 주세요.",
+        isOcrPending: false,
+        ocrDeliveredSyncKey: audioSyncKey,
       };
     });
   };
@@ -1018,18 +1063,11 @@ function App() {
     );
   };
 
-  const renderRecordingControl = (reviewId: number) => (
-    <div className="media-control">
-      <button
-        className="media-button"
-        type="button"
-        onClick={() =>
-          void updateAudioHelper(reviewId, { source: "recording" })
-        }
-      >
-        녹음 흐름 시작하기
-      </button>
-    </div>
+  const renderRecordingControl = (reviewId: number, isPending?: boolean) => (
+    <RecordingControl
+      disabled={isPending}
+      onAudioReady={(file) => void updateAudioTranscript(reviewId, file)}
+    />
   );
 
   const renderAudioFilePicker = (reviewId: number, audioFileName?: string) => {
@@ -1053,7 +1091,7 @@ function App() {
               return;
             }
 
-            void updateAudioHelper(reviewId, { source: "file", file });
+            void updateAudioTranscript(reviewId, file);
           }}
         />
         {audioFileName ? (
@@ -1139,7 +1177,7 @@ function App() {
     }
 
     if (state.inputMethod === "record") {
-      return renderRecordingControl(state.reviewId);
+      return renderRecordingControl(state.reviewId, state.isOcrPending);
     }
 
     if (state.inputMethod === "audio-file") {

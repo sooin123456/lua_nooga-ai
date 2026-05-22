@@ -71,6 +71,10 @@ describe("RewardChatScreen", () => {
 
     expect(screen.getByText("잘못 정도별 토스 상품 추천")).toBeInTheDocument();
     expect(screen.getAllByText("토스 상품 추천")).toHaveLength(3);
+    expect(screen.getByText("14,900원")).toBeInTheDocument();
+    expect(screen.getByText("16,900원")).toBeInTheDocument();
+    expect(screen.getByText("19,900원")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "토스 쇼핑에서 보기" })).toHaveLength(3);
     expect(screen.queryByText("문자 메시지 작성")).not.toBeInTheDocument();
   });
 

@@ -1,10 +1,10 @@
 import type { CSSProperties } from "react";
-import type { LucideIcon } from "lucide-react";
+import type { InputMethodIcon } from "./inputMethods";
 
 type EvidenceMethodCardProps = {
   title: string;
   description: string;
-  Icon: LucideIcon;
+  icon: InputMethodIcon;
   index: number;
   onClick(): void;
 };
@@ -12,7 +12,7 @@ type EvidenceMethodCardProps = {
 export function EvidenceMethodCard({
   title,
   description,
-  Icon,
+  icon,
   index,
   onClick,
 }: EvidenceMethodCardProps) {
@@ -23,9 +23,10 @@ export function EvidenceMethodCard({
       type="button"
       onClick={onClick}
     >
-      <span className="method-card__icon" aria-hidden="true">
-        <Icon size={22} strokeWidth={2.2} />
-      </span>
+      <span
+        className={`object-icon object-icon--${icon} method-card__icon`}
+        aria-hidden="true"
+      />
       <span className="method-card__copy">
         <strong>{title}</strong>
         <span>{description}</span>

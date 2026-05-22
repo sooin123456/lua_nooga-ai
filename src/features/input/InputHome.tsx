@@ -1,5 +1,5 @@
 import { openURL } from "@apps-in-toss/web-framework";
-import { Archive, Flame, Gift, History, Home, MessageCirclePlus } from "lucide-react";
+import { ArrowLeft, Flame, History, Home, MessageCirclePlus } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { EvidenceMethodCard } from "./EvidenceMethodCard";
@@ -8,7 +8,7 @@ import {
   createConfiguredResultShareService,
   type createResultShareService,
 } from "../resultShare/resultShareAdapter";
-import type { HotBattle } from "../resultShare/types";
+import type { HotBattle, ResultComment, ResultLikeState } from "../resultShare/types";
 
 type InputHomeProps = {
   resultShareService?: ReturnType<typeof createResultShareService> | null;
@@ -193,6 +193,14 @@ export function InputHome({
       ),
   );
   const [latestComments, setLatestComments] = useState<Record<string, string>>({});
+  const [battleComments, setBattleComments] = useState<Record<string, ResultComment[]>>({});
+  const [battleLikeStates, setBattleLikeStates] = useState<
+    Record<string, ResultLikeState>
+  >({});
+  const [battleActionStatus, setBattleActionStatus] = useState("");
+  const [pendingBattleAction, setPendingBattleAction] = useState<
+    "comment" | "like" | "report" | null
+  >(null);
   const [randomRewardLabel, setRandomRewardLabel] = useState(reconciliationProducts[0]);
 
   useEffect(() => {
@@ -235,7 +243,45 @@ export function InputHome({
     };
   }, [configuredResultShareService]);
 
-  const submitLeaderboardComment = (
+  useEffect(() => {
+    if (!selectedBattleId || !configuredResultShareService) {
+      return;
+    }
+
+    let isCurrent = true;
+    setBattleActionStatus("댓글과 반응을 불러오고 있어요.");
+
+    Promise.all([
+      configuredResultShareService.listComments(selectedBattleId),
+      configuredResultShareService.getLikeState(selectedBattleId),
+    ])
+      .then(([comments, likeState]) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        setBattleComments((currentComments) => ({
+          ...currentComments,
+          [selectedBattleId]: comments,
+        }));
+        setBattleLikeStates((currentStates) => ({
+          ...currentStates,
+          [selectedBattleId]: likeState,
+        }));
+        setBattleActionStatus("실시간 댓글과 반응을 불러왔어요.");
+      })
+      .catch(() => {
+        if (isCurrent) {
+          setBattleActionStatus("댓글을 불러오지 못해 기본 댓글을 보여드려요.");
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [configuredResultShareService, selectedBattleId]);
+
+  const submitLeaderboardComment = async (
     event: FormEvent<HTMLFormElement>,
     itemId: string,
   ) => {
@@ -243,6 +289,34 @@ export function InputHome({
 
     const nextComment = commentDraft.trim();
     if (!nextComment) {
+      return;
+    }
+
+    if (configuredResultShareService) {
+      setPendingBattleAction("comment");
+      setBattleActionStatus("댓글을 등록하고 있어요.");
+
+      try {
+        const comment = await configuredResultShareService.addComment(
+          itemId,
+          nextComment,
+        );
+        setBattleComments((currentComments) => ({
+          ...currentComments,
+          [itemId]: [comment, ...(currentComments[itemId] ?? [])],
+        }));
+        setCommentCounts((currentCounts) => ({
+          ...currentCounts,
+          [itemId]: (currentCounts[itemId] ?? 0) + 1,
+        }));
+        setCommentDraft("");
+        setBattleActionStatus("댓글이 등록됐어요.");
+      } catch {
+        setBattleActionStatus("댓글 등록에 실패했어요. 잠시 후 다시 시도해주세요.");
+      } finally {
+        setPendingBattleAction(null);
+      }
+
       return;
     }
 
@@ -255,6 +329,67 @@ export function InputHome({
       [itemId]: nextComment,
     }));
     setCommentDraft("");
+  };
+
+  const toggleBattleLike = async (itemId: string) => {
+    const currentItem = leaderboardItems.find(({ id }) => id === itemId);
+    const currentState = battleLikeStates[itemId] ?? {
+      likeCount: currentItem?.likes ?? 0,
+      hasLiked: false,
+    };
+
+    if (!configuredResultShareService) {
+      setBattleLikeStates((currentStates) => ({
+        ...currentStates,
+        [itemId]: {
+          likeCount: currentState.hasLiked
+            ? Math.max(0, currentState.likeCount - 1)
+            : currentState.likeCount + 1,
+          hasLiked: !currentState.hasLiked,
+        },
+      }));
+      return;
+    }
+
+    setPendingBattleAction("like");
+    setBattleActionStatus("반응을 남기고 있어요.");
+
+    try {
+      const nextState = await configuredResultShareService.setLiked(
+        itemId,
+        !currentState.hasLiked,
+      );
+      setBattleLikeStates((currentStates) => ({
+        ...currentStates,
+        [itemId]: nextState,
+      }));
+      setBattleActionStatus(
+        nextState.hasLiked ? "선넘었어요 반응을 남겼어요." : "반응을 취소했어요.",
+      );
+    } catch {
+      setBattleActionStatus("반응 저장에 실패했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setPendingBattleAction(null);
+    }
+  };
+
+  const reportBattle = async (itemId: string) => {
+    if (!configuredResultShareService) {
+      setBattleActionStatus("신고가 접수됐어요.");
+      return;
+    }
+
+    setPendingBattleAction("report");
+    setBattleActionStatus("신고를 접수하고 있어요.");
+
+    try {
+      await configuredResultShareService.reportResult(itemId, "inappropriate");
+      setBattleActionStatus("신고가 접수됐어요. 검토 후 노출을 조정할게요.");
+    } catch {
+      setBattleActionStatus("신고 접수에 실패했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setPendingBattleAction(null);
+    }
   };
 
   const selectedBattle = leaderboardItems.find(
@@ -297,8 +432,13 @@ export function InputHome({
     return (
       <main className="screen screen--home">
         <section className="home-dashboard home-dashboard--page" aria-label="최근 판정">
-          <button className="home-detail-back" type="button" onClick={goHomeTab}>
-            홈으로 돌아가기
+          <button
+            className="home-detail-back"
+            type="button"
+            aria-label="홈으로 돌아가기"
+            onClick={goHomeTab}
+          >
+            <ArrowLeft size={18} strokeWidth={2.5} />
           </button>
           <div className="home-page-heading">
             <span>최근</span>
@@ -322,19 +462,35 @@ export function InputHome({
   }
 
   if (selectedBattle) {
+    const likeState = battleLikeStates[selectedBattle.id] ?? {
+      likeCount: selectedBattle.likes,
+      hasLiked: false,
+    };
+    const serverComments = battleComments[selectedBattle.id];
+    const visibleComments =
+      serverComments && serverComments.length > 0
+        ? serverComments.map((comment) => comment.body)
+        : [
+            ...(latestComments[selectedBattle.id]
+              ? [latestComments[selectedBattle.id]]
+              : []),
+            ...selectedBattle.commentsPreview,
+          ];
+
     return (
       <main className="screen screen--home">
         <section className="home-dashboard" aria-label="핫 Battle 상세">
           <button
             className="home-detail-back"
             type="button"
+            aria-label="핫 Battle로 돌아가기"
             onClick={() => {
               setSelectedBattleId(null);
               setCommentDraft("");
               setActiveTab("hot");
             }}
           >
-            핫 Battle로 돌아가기
+            <ArrowLeft size={18} strokeWidth={2.5} />
           </button>
 
           <article className="home-battle-detail">
@@ -350,11 +506,30 @@ export function InputHome({
             </div>
             <div className="home-battle-detail__meta">
               <span>댓글 {commentCounts[selectedBattle.id]}</span>
-              <span>좋아요 {selectedBattle.likes}</span>
+              <button
+                className="home-battle-reaction"
+                type="button"
+                aria-pressed={likeState.hasLiked}
+                disabled={pendingBattleAction === "like"}
+                onClick={() => void toggleBattleLike(selectedBattle.id)}
+              >
+                선넘었어요 {likeState.likeCount}
+              </button>
+              <button
+                className="home-battle-report"
+                type="button"
+                disabled={pendingBattleAction === "report"}
+                onClick={() => void reportBattle(selectedBattle.id)}
+              >
+                신고
+              </button>
             </div>
             <p className="home-battle-detail__privacy">
               공개 Battle은 개인정보를 제외한 익명 요약으로 보여줘요.
             </p>
+            {battleActionStatus ? (
+              <p className="home-battle-detail__status">{battleActionStatus}</p>
+            ) : null}
           </article>
 
           <section className="home-battle-transcript" aria-label="대화 내용">
@@ -375,10 +550,7 @@ export function InputHome({
           <section className="home-battle-comments" aria-label="댓글쓰기">
             <h2>댓글쓰기</h2>
             <ol>
-              {latestComments[selectedBattle.id] ? (
-                <li>{latestComments[selectedBattle.id]}</li>
-              ) : null}
-              {selectedBattle.commentsPreview.map((comment) => (
+              {visibleComments.map((comment) => (
                 <li key={comment}>{comment}</li>
               ))}
             </ol>
@@ -398,7 +570,13 @@ export function InputHome({
                 placeholder="이 판정에 한마디 남기기"
                 onChange={(event) => setCommentDraft(event.currentTarget.value)}
               />
-              <button type="submit" disabled={commentDraft.trim().length === 0}>
+              <button
+                type="submit"
+                disabled={
+                  commentDraft.trim().length === 0 ||
+                  pendingBattleAction === "comment"
+                }
+              >
                 등록
               </button>
             </form>
@@ -416,65 +594,84 @@ export function InputHome({
   }
 
   if (activeTab === "hot") {
+    const mainBattle = leaderboardItems[0] ?? fallbackLeaderboardItems[0];
+    const talkItems = leaderboardItems.flatMap((item) => [
+      {
+        id: `${item.id}-title`,
+        battleId: item.id,
+        label: item.title,
+        count: commentCounts[item.id] ?? item.comments,
+      },
+      {
+        id: `${item.id}-advice`,
+        battleId: item.id,
+        label: item.summary,
+        count: item.likes,
+      },
+    ]);
+
     return (
       <main className="screen screen--home">
-        <section className="home-dashboard home-dashboard--page" aria-label="핫 Battle 목록">
-          <button className="home-detail-back" type="button" onClick={goHomeTab}>
-            홈으로 돌아가기
+        <section className="home-dashboard home-dashboard--page hot-board" aria-label="핫 Battle 목록">
+          <button
+            className="home-detail-back"
+            type="button"
+            aria-label="홈으로 돌아가기"
+            onClick={goHomeTab}
+          >
+            <ArrowLeft size={18} strokeWidth={2.5} />
           </button>
-          <div className="home-page-heading">
-            <span>오늘의 핫 Battle 🔥</span>
-            <h1>Top 3</h1>
-            <p>{leaderboardStatus}</p>
+
+          <div className="hot-board__tabs" aria-label="핫 Battle 섹션">
+            <strong>오늘의 판</strong>
+            <span>루아의 선택 명예의 전당</span>
           </div>
-          <section className="home-leaderboard home-leaderboard--page" aria-label="Top 3">
-            {leaderboardItems.slice(0, 3).map((item) => (
-              <article className="home-leaderboard__item" key={item.id}>
-                <span className="home-leaderboard__rank">
-                  <span aria-hidden="true">
-                    {leaderboardIcons[item.rank - 1] ?? "🏅"}
-                  </span>
-                  {item.rank}위
-                </span>
-                <div>
-                  <strong>{item.title}</strong>
-                  <p>
-                    {item.verdict} · 댓글 {commentCounts[item.id] ?? item.comments} · 좋아요{" "}
-                    {item.likes}
-                  </p>
-                  {latestComments[item.id] ? (
-                    <em>최근 댓글: {latestComments[item.id]}</em>
-                  ) : null}
-                </div>
+          <p className="hot-board__status">{leaderboardStatus}</p>
+
+          <header className="hot-board__date">
+            <button type="button" aria-label="이전 날짜">‹</button>
+            <h1>2026.05.21</h1>
+            <button type="button" aria-label="다음 날짜">›</button>
+          </header>
+
+          <article className="hot-board__pick">
+            <span className="hot-board__badge">오늘의 판</span>
+            <div className="hot-board__thumb" aria-hidden="true" />
+            <div>
+              <strong>{mainBattle.title}</strong>
+              <p>
+                {mainBattle.verdict} · 댓글 {commentCounts[mainBattle.id] ?? mainBattle.comments}
+              </p>
+            </div>
+          </article>
+
+          <section className="hot-board__talk" aria-label="오늘의 톡">
+            <div className="hot-board__talk-heading">
+              <h2>오늘의 톡</h2>
+              <span>2026.05.21</span>
+            </div>
+            <div className="hot-board__talk-grid">
+              {talkItems.slice(0, 8).map((item) => (
                 <button
                   type="button"
+                  key={item.id}
                   onClick={() => {
-                    setSelectedBattleId(item.id);
+                    const battle = leaderboardItems.find(
+                      ({ id }) => id === item.battleId,
+                    );
+                    if (!battle) {
+                      return;
+                    }
+                    setSelectedBattleId(battle.id);
                     setCommentDraft("");
                     setActiveTab("hot");
                   }}
                 >
-                  자세히 보기
+                  <span>{item.label}</span>
+                  <em>({item.count})</em>
                 </button>
-              </article>
-            ))}
-          </section>
-          <section className="home-battle-feed" aria-label="올라온 Battle">
-            <h2>올라온 리스트</h2>
-            {leaderboardItems.map((item) => (
-              <button
-                type="button"
-                key={item.id}
-                onClick={() => {
-                  setSelectedBattleId(item.id);
-                  setCommentDraft("");
-                  setActiveTab("hot");
-                }}
-              >
-                <strong>{item.title}</strong>
-                <span>댓글 {commentCounts[item.id] ?? item.comments} · 좋아요 {item.likes}</span>
-              </button>
-            ))}
+              ))}
+            </div>
           </section>
         </section>
         <HomeTabBar
@@ -491,29 +688,6 @@ export function InputHome({
   return (
     <main className="screen screen--home">
       <section className="home-dashboard" aria-label="입력 방식 선택">
-        <div className="home-top-actions">
-          <button
-            className="home-archive-button"
-            type="button"
-            aria-label="최근 판정"
-            onClick={openRecentTab}
-          >
-            <span className="home-3d-icon home-3d-icon--archive" aria-hidden="true">
-              <Archive size={22} strokeWidth={2.6} />
-            </span>
-          </button>
-        </div>
-
-        <button className="home-reward-card" type="button" onClick={() => void openRandomReward()}>
-          <span className="home-3d-icon home-3d-icon--gift" aria-hidden="true">
-            <Gift size={20} strokeWidth={2.5} />
-          </span>
-          <div>
-            <strong>루아가 직접 화해의 상품을 추천해요</strong>
-            <p>누르면 랜덤으로 {randomRewardLabel} 같은 보상을 토스 쇼핑에서 찾아요.</p>
-          </div>
-        </button>
-
         <article className="home-profile-card">
           <img
             src="/lua-ai-judge.png"
@@ -528,28 +702,11 @@ export function InputHome({
           </div>
         </article>
 
-        <div className="home-main-tabs" aria-label="빠른 실행">
-          <button type="button" onClick={openHotBattleTab}>
-            <span className="home-3d-icon home-3d-icon--fire" aria-hidden="true">
-              <Flame size={20} strokeWidth={2.6} />
-            </span>
-            <strong>오늘의 핫 Battle</strong>
-            <em>Top 3 보기</em>
-          </button>
-          <button type="button" onClick={createRoomFromHome}>
-            <span className="home-3d-icon home-3d-icon--chat" aria-hidden="true">
-              <MessageCirclePlus size={20} strokeWidth={2.6} />
-            </span>
-            <strong>실시간 판정방 만들기</strong>
-            <em>초대 링크 열기</em>
-          </button>
-        </div>
-
         <div className="method-grid">
-          {inputMethods.map(({ id, title, description, Icon }, index) => (
+          {inputMethods.map(({ id, title, description, icon }, index) => (
             <EvidenceMethodCard
-              Icon={Icon}
               description={description}
+              icon={icon}
               key={id}
               index={index}
               title={title}
@@ -557,6 +714,15 @@ export function InputHome({
             />
           ))}
         </div>
+
+        <button className="home-reward-card" type="button" onClick={() => void openRandomReward()}>
+          <div className="home-reward-card__copy">
+            <span>화해 추천</span>
+            <strong>루아가 직접 화해의 상품을 추천해요</strong>
+            <p>누르면 {randomRewardLabel} 같은 보상을 토스 쇼핑에서 찾아요.</p>
+          </div>
+          <span className="home-reward-card__art" aria-hidden="true" />
+        </button>
 
         <p className="home-privacy-note">
           현재 무료 판독은 입력 내용을 이 기기 안에서만 가볍게 분석해요.

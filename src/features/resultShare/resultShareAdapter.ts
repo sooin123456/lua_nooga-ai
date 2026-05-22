@@ -155,6 +155,7 @@ export function createResultShareService({
     addComment: gateway.addComment,
     getLikeState: gateway.getLikeState,
     setLiked: gateway.setLiked,
+    reportResult: gateway.reportResult,
     listHotBattles: gateway.listHotBattles,
   };
 }
@@ -231,6 +232,18 @@ export function createSupabaseResultShareGateway(
         likeCount: likeState.like_count,
         hasLiked: likeState.has_liked,
       };
+    },
+
+    async reportResult(resultId: string, reason: string) {
+      const { error } = await supabase.rpc("report_result", {
+        p_result_id: resultId,
+        p_client_key: clientKey,
+        p_reason: reason,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
     },
 
     async listHotBattles(limit = 5) {

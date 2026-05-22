@@ -132,11 +132,13 @@ describe("createRewardChatRecommendation", () => {
     expect(recommendation.candidates[0]).toMatchObject({
       tone: "가벼운 사과",
       priceHint: "1~2만원대",
+      priceText: "14,900원",
       title: "고디바 초콜릿 미니박스",
     });
     expect(recommendation.candidates[2]).toMatchObject({
       tone: "확실한 사과",
       priceHint: "1~2만원대",
+      priceText: "19,900원",
       title: "투썸 조각 케이크 교환권",
     });
   });
@@ -159,6 +161,7 @@ describe("createRewardChatRecommendation", () => {
       "light",
       "가벼운 사과로 충분한 판정",
       ["5천원대", "5천원대", "5천원대"],
+      ["4,900원", "5,500원", "5,900원"],
       "가볍게 웃으면서 풀 수 있는",
     ],
     [
@@ -166,6 +169,7 @@ describe("createRewardChatRecommendation", () => {
       "fair",
       "적정 보상이 어울리는 판정",
       ["1~2만원대", "1~2만원대", "1~2만원대"],
+      ["14,900원", "16,900원", "19,900원"],
       "분위기 풀기엔",
     ],
     [
@@ -173,6 +177,7 @@ describe("createRewardChatRecommendation", () => {
       "fair",
       "적정 보상이 어울리는 판정",
       ["1~2만원대", "1~2만원대", "1~2만원대"],
+      ["14,900원", "16,900원", "19,900원"],
       "분위기 풀기엔",
     ],
     [
@@ -180,6 +185,7 @@ describe("createRewardChatRecommendation", () => {
       "serious",
       "확실한 사과가 필요한 판정",
       ["3만원대", "3만원대", "3만원대"],
+      ["31,900원", "34,900원", "39,000원"],
       "확실한 사과가 필요해요",
     ],
     [
@@ -187,6 +193,7 @@ describe("createRewardChatRecommendation", () => {
       "serious",
       "확실한 사과가 필요한 판정",
       ["3만원대", "3만원대", "3만원대"],
+      ["31,900원", "34,900원", "39,000원"],
       "확실한 사과가 필요해요",
     ],
     [
@@ -194,11 +201,12 @@ describe("createRewardChatRecommendation", () => {
       "serious",
       "확실한 사과가 필요한 판정",
       ["3만원대", "3만원대", "3만원대"],
+      ["31,900원", "34,900원", "39,000원"],
       "확실한 사과가 필요해요",
     ],
   ] as const)(
     "keeps reward tier output aligned at %s percent",
-    (percent, severity, severityLabel, prices, luaMessage) => {
+    (percent, severity, severityLabel, priceBands, priceTexts, luaMessage) => {
       const recommendation = createRewardChatRecommendation({
         wish: "커피",
         partyAPercent: percent,
@@ -208,7 +216,10 @@ describe("createRewardChatRecommendation", () => {
       expect(recommendation.severity).toBe(severity);
       expect(recommendation.severityLabel).toBe(severityLabel);
       expect(recommendation.candidates.map((candidate) => candidate.priceHint)).toEqual(
-        prices,
+        priceBands,
+      );
+      expect(recommendation.candidates.map((candidate) => candidate.priceText)).toEqual(
+        priceTexts,
       );
       expect(recommendation.luaMessage).toContain(luaMessage);
     },

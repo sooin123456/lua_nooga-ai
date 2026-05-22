@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { analyzeWithAi } from "./features/analyzer/freeJudgmentAdapter";
+import { transcribeAudioFile } from "./features/audio/audioAdapter";
 import {
   extractTextFromImage,
   ocrFailureMessage,
@@ -23,6 +24,12 @@ vi.mock("./features/analyzer/freeJudgmentAdapter", () => ({
 vi.mock("./features/ocr/ocrAdapter", () => ({
   ocrFailureMessage: "이미지에서 글자를 읽지 못했어요. 직접 입력해 주세요.",
   extractTextFromImage: vi.fn(),
+}));
+
+vi.mock("./features/audio/audioAdapter", () => ({
+  audioTranscriptionFailureMessage:
+    "음성을 텍스트로 바꾸지 못했어요. 직접 입력해 주세요.",
+  transcribeAudioFile: vi.fn(),
 }));
 
 vi.mock("./features/premium/premiumAdapter", () => ({
@@ -524,7 +531,9 @@ describe("App text review flow", () => {
     expect(screen.getByText("루아 보상 상담소")).toBeInTheDocument();
     await user.type(screen.getByRole("textbox", { name: "받고 싶은 보상" }), "달달한 거");
     await user.click(screen.getByRole("button", { name: "루아에게 골라달라 하기" }));
-    expect(screen.getAllByText("5천원대")).toHaveLength(3);
+    expect(screen.getByText("4,900원")).toBeInTheDocument();
+    expect(screen.getByText("5,500원")).toBeInTheDocument();
+    expect(screen.getByText("5,900원")).toBeInTheDocument();
     expect(screen.getByText("잘못 정도별 토스 상품 추천")).toBeInTheDocument();
     expect(screen.getByText("확실한 사과")).toBeInTheDocument();
 
@@ -652,19 +661,20 @@ describe("App text review flow", () => {
     expect(screen.queryByText("오늘의 판정")).not.toBeInTheDocument();
   });
 
-  it("shows a manual transcription message when starting the recording flow", async () => {
+  it("shows a real recording control when starting the recording flow", async () => {
     const user = userEvent.setup();
 
     await renderAppHome(user);
 
     await user.click(screen.getByRole("button", { name: /현장 녹음 시작/ }));
     await user.click(
-      screen.getByRole("button", { name: "녹음 흐름 시작하기" }),
+      screen.getByRole("button", { name: "녹음 시작하기" }),
     );
 
-    expect(screen.getByText(/녹음 흐름을 시작했어요/)).toHaveTextContent(
-      "직접",
-    );
+    expect(
+      await screen.findByText(/녹음을 지원하지 않아요|마이크 권한을 받지 못했어요/),
+    ).toBeInTheDocument();
+    expect(transcribeAudioFile).not.toHaveBeenCalled();
 
     await user.type(
       screen.getByLabelText("분석할 대화 내용"),
@@ -675,8 +685,12 @@ describe("App text review flow", () => {
     );
   });
 
-  it("shows a manual transcription message with the selected audio file name", async () => {
+  it("fills text from a selected audio file transcription", async () => {
     const user = userEvent.setup();
+    vi.mocked(transcribeAudioFile).mockResolvedValue({
+      status: "ready",
+      text: "A: 음성에서 나온 말\nB: 변환된 답장",
+    });
 
     await renderAppHome(user);
 
@@ -690,8 +704,35 @@ describe("App text review flow", () => {
     await user.upload(screen.getByLabelText("녹음 파일 선택"), file);
 
     expect(
-      screen.getByText(/fight-recording\.m4a 내용을 들은 뒤/),
-    ).toHaveTextContent("직접");
+      await screen.findByText(/음성을 텍스트로 바꿨어요/),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("분석할 대화 내용")).toHaveValue(
+      "A: 음성에서 나온 말\nB: 변환된 답장",
+    );
+    expect(transcribeAudioFile).toHaveBeenCalledWith({ file });
+  });
+
+  it("shows a friendly message when audio transcription fails", async () => {
+    const user = userEvent.setup();
+    vi.mocked(transcribeAudioFile).mockResolvedValue({
+      status: "failed",
+      message: "음성을 텍스트로 바꾸지 못했어요. 직접 입력해 주세요.",
+    });
+
+    await renderAppHome(user);
+
+    await user.click(
+      screen.getByRole("button", { name: /녹음 파일 불러오기/ }),
+    );
+
+    const file = new File(["audio bytes"], "fight-recording.m4a", {
+      type: "audio/mp4",
+    });
+    await user.upload(screen.getByLabelText("녹음 파일 선택"), file);
+
+    expect(
+      await screen.findByText("음성을 텍스트로 바꾸지 못했어요. 직접 입력해 주세요."),
+    ).toBeInTheDocument();
 
     await user.type(
       screen.getByLabelText("분석할 대화 내용"),

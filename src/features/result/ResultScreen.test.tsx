@@ -382,6 +382,7 @@ describe("ResultScreen", () => {
         likeCount: 1,
         hasLiked: true,
       }),
+      reportResult: vi.fn(),
       listHotBattles: vi.fn(),
     };
     Object.defineProperty(navigator, "clipboard", {

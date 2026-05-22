@@ -84,6 +84,38 @@ export function RoomScreen({
         .map(({ role, nickname }) => `${role === "spectator" ? "관전" : role} ${nickname}`)
         .join(" · ")
     : "입장한 사람이 아직 없어요.";
+  const roomSteps = [
+    {
+      id: "nickname",
+      title: "닉네임을 정하고 입장",
+      description: currentParticipant
+        ? `${currentParticipant.nickname}님으로 입장했어요`
+        : "첫 두 명은 A/B 당사자로 들어와요",
+      isDone: Boolean(currentParticipant),
+    },
+    {
+      id: "invite",
+      title: "초대 링크 보내기",
+      description: isCountdownStarted
+        ? "상대가 입장해서 대화가 시작됐어요"
+        : "상대에게 링크를 보내고 기다려요",
+      isDone: isCountdownStarted,
+    },
+    {
+      id: "chat",
+      title: "60초 동안 대화하기",
+      description: messages.length > 0
+        ? `${messages.length}개의 말이 남았어요`
+        : "할 말을 짧게 남겨주세요",
+      isDone: messages.length > 0,
+    },
+    {
+      id: "verdict",
+      title: "결과만 남기기",
+      description: isRoomClosed ? "대화 원문은 사라졌어요" : "판정하면 원문은 삭제돼요",
+      isDone: isRoomClosed,
+    },
+  ];
 
   return (
     <main className="screen screen--room">
@@ -128,6 +160,24 @@ export function RoomScreen({
             루아가 망치를 들었어요.
           </p>
         ) : null}
+
+        <section className="room-flow-card" aria-label="판정방 진행 단계">
+          <div className="room-flow-card__banner">
+            <strong>루아 판정방은 원문을 남기지 않아요</strong>
+            <span>초대하고, 60초만 말하고, 결과만 남겨요.</span>
+          </div>
+          <ol>
+            {roomSteps.map((step, index) => (
+              <li className={step.isDone ? "is-done" : ""} key={step.id}>
+                <span>{index + 1}</span>
+                <div>
+                  <strong>{step.title}</strong>
+                  <p>{step.description}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
 
         {room && !currentParticipant ? (
           <form className="room-join-card" onSubmit={submitNickname}>
@@ -212,7 +262,7 @@ export function RoomScreen({
               />
               <button type="submit" disabled={!canChat || body.trim().length === 0}>
                 <Send size={16} />
-                보내기
+                <span>보내기</span>
               </button>
             </form>
 

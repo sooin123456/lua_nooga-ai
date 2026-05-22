@@ -32,5 +32,6 @@ export type ResultShareGateway = {
   addComment(resultId: string, body: string): Promise<ResultComment>;
   getLikeState(resultId: string): Promise<ResultLikeState>;
   setLiked(resultId: string, liked: boolean): Promise<ResultLikeState>;
+  reportResult(resultId: string, reason: string): Promise<void>;
   listHotBattles(limit?: number): Promise<HotBattle[]>;
 };
