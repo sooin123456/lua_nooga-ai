@@ -118,6 +118,7 @@ describe("ResultScreen", () => {
       <ResultScreen
         result={normalResult}
         onRestart={vi.fn()}
+        onRequestPrecedentJudgment={vi.fn()}
         resultShareService={null}
       />,
     );
@@ -138,6 +139,37 @@ describe("ResultScreen", () => {
     ).toBeEnabled();
   });
 
+  it("runs the paid precedent judgment request after consent", async () => {
+    const user = userEvent.setup();
+    const onRequestPrecedentJudgment = vi.fn().mockResolvedValue(undefined);
+
+    renderResultScreen(
+      <ResultScreen
+        result={normalResult}
+        onRestart={vi.fn()}
+        onRequestPrecedentJudgment={onRequestPrecedentJudgment}
+        resultShareService={null}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /억울하면 유사 판례로 한 번 더 따져보기/,
+      }),
+    );
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: "서버 전송과 참고용 분석에 동의합니다.",
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: "동의하고 분석하기" }));
+
+    expect(onRequestPrecedentJudgment).toHaveBeenCalledTimes(1);
+    expect(
+      await screen.findByText("결제 확인 후 판례 AI가 다시 따져보고 있어요."),
+    ).toBeInTheDocument();
+  });
+
   it("resets precedent consent after the confirmation is closed and reopened", async () => {
     const user = userEvent.setup();
 
@@ -145,6 +177,7 @@ describe("ResultScreen", () => {
       <ResultScreen
         result={normalResult}
         onRestart={vi.fn()}
+        onRequestPrecedentJudgment={vi.fn()}
         resultShareService={null}
       />,
     );

@@ -8,6 +8,9 @@ import {
   extractTextFromImage,
   ocrFailureMessage,
 } from "./features/ocr/ocrAdapter";
+import { requestPrecedentEntitlement } from "./features/precedent/precedentEntitlementAdapter";
+import { requestPrecedentJudgment } from "./features/precedent/precedentJudgmentAdapter";
+import { requestPremiumVerdict } from "./features/premium/premiumAdapter";
 
 vi.mock("./features/analyzer/ruleBasedAnalyzer", () => ({
   analyzeWithRules: vi.fn(),
@@ -20,6 +23,18 @@ vi.mock("./features/analyzer/freeJudgmentAdapter", () => ({
 vi.mock("./features/ocr/ocrAdapter", () => ({
   ocrFailureMessage: "이미지에서 글자를 읽지 못했어요. 직접 입력해 주세요.",
   extractTextFromImage: vi.fn(),
+}));
+
+vi.mock("./features/premium/premiumAdapter", () => ({
+  requestPremiumVerdict: vi.fn(),
+}));
+
+vi.mock("./features/precedent/precedentEntitlementAdapter", () => ({
+  requestPrecedentEntitlement: vi.fn(),
+}));
+
+vi.mock("./features/precedent/precedentJudgmentAdapter", () => ({
+  requestPrecedentJudgment: vi.fn(),
 }));
 
 beforeAll(() => {
@@ -516,6 +531,94 @@ describe("App text review flow", () => {
     await user.click(screen.getByRole("button", { name: "홈으로 돌아가기" }));
     expect(await screen.findByRole("button", { name: "최근" })).toBeInTheDocument();
     expect(screen.queryByText("억울하면 판례로 다시 따지기")).not.toBeInTheDocument();
+  });
+
+  it("runs the paid precedent AI analysis flow from the result screen", async () => {
+    const user = userEvent.setup();
+    const aiResult = {
+      verdict: "A가 72% 선넘었어요",
+      partyAPercent: 72,
+      partyBPercent: 28,
+      reasons: ["첫 번째 이유", "두 번째 이유", "세 번째 이유"] as [
+        string,
+        string,
+        string,
+      ],
+      advice: "기다린 시간을 인정해 주세요.",
+      safetyLevel: "normal" as const,
+    };
+    vi.mocked(analyzeWithAi).mockResolvedValue({
+      status: "ready",
+      result: aiResult,
+    });
+    vi.mocked(requestPremiumVerdict).mockResolvedValue({
+      status: "paid",
+      orderId: "order-1",
+      message: "결제가 완료됐어요",
+    });
+    vi.mocked(requestPrecedentEntitlement).mockResolvedValue({
+      status: "ready",
+      entitlementToken: "token-1",
+      message: "결제 검증이 완료됐어요",
+    });
+    vi.mocked(requestPrecedentJudgment).mockResolvedValue({
+      status: "ready",
+      message: "판례 AI 분석이 완료됐어요.",
+      disclaimer: "법률 상담이 아닌 참고용 분석이에요.",
+      report: {
+        verdict: "판례 기준으로도 A가 68% 선넘었어요",
+        partyAPercent: 68,
+        partyBPercent: 32,
+        reasons: ["사과 지연", "감정 확인 부족", "일부 쌍방 책임"],
+        advice: "먼저 사과하고 작은 보상을 제안해 보세요.",
+        safetyLevel: "normal",
+        precedentIssues: ["사과 지연", "비난 표현", "회복 노력"],
+        rebuttalPoints: ["늦은 사정이 불가피했다는 점은 반박 포인트예요."],
+        reconciliationSuggestion: "커피 한 잔으로 사과를 시작해 보세요.",
+        precedents: [
+          {
+            title: "대법원 2020다00000",
+            court: "대법원",
+            decidedAt: "2020-01-01",
+            summary: "반복 비난과 사과 부족은 책임 판단에 참고될 수 있다.",
+            similarityReason: "사과, 비난 표현이 유사해요.",
+          },
+        ],
+      },
+    });
+
+    await renderAppHome(user);
+    await user.click(
+      screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: /무료\s*판독\s*받기/ }),
+    );
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: /억울하면 유사 판례로 한 번 더 따져보기/,
+      }),
+    );
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: "서버 전송과 참고용 분석에 동의합니다.",
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: "동의하고 분석하기" }));
+
+    expect(requestPremiumVerdict).toHaveBeenCalledTimes(1);
+    expect(requestPrecedentEntitlement).toHaveBeenCalledWith({
+      orderId: "order-1",
+    });
+    expect(requestPrecedentJudgment).toHaveBeenCalledWith({
+      text: expect.any(String),
+      originalResult: aiResult,
+      entitlementToken: "token-1",
+    });
+    expect(await screen.findByText("판례 AI 판독 완료")).toBeInTheDocument();
+    expect(screen.getByText("판례 기준으로도 A가 68% 선넘었어요")).toBeInTheDocument();
+    expect(screen.getByText("대법원 2020다00000")).toBeInTheDocument();
   });
 
   it("stays on review and shows the limited message when free AI use is exhausted", async () => {

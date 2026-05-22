@@ -17,6 +17,13 @@ import {
   extractTextFromImage,
   ocrFailureMessage,
 } from "./features/ocr/ocrAdapter";
+import { PrecedentJudgmentScreen } from "./features/precedent/PrecedentJudgmentScreen";
+import { requestPrecedentEntitlement } from "./features/precedent/precedentEntitlementAdapter";
+import {
+  requestPrecedentJudgment,
+  type PrecedentJudgmentReport,
+} from "./features/precedent/precedentJudgmentAdapter";
+import { requestPremiumVerdict } from "./features/premium/premiumAdapter";
 import { ResultScreen } from "./features/result/ResultScreen";
 import { RewardChatScreen } from "./features/rewards/RewardChatScreen";
 import { createConfiguredResultShareService } from "./features/resultShare/resultShareAdapter";
@@ -84,6 +91,14 @@ type AppState =
       result: JudgmentResult;
       sourceText: string;
       sharedResultId?: string;
+    }
+  | {
+      screen: "precedent-result";
+      result: JudgmentResult;
+      sourceText: string;
+      sharedResultId?: string;
+      report: PrecedentJudgmentReport;
+      disclaimer: string;
     };
 
 const starterSampleText = `A: 너는 항상 내 말은 안 듣잖아.
@@ -1072,6 +1087,43 @@ function App() {
     setState({ screen: "result", result: aiJudgment.result, sourceText: text });
   };
 
+  const handlePrecedentJudgment = async () => {
+    if (state.screen !== "result") {
+      return;
+    }
+
+    const { result, sourceText, sharedResultId } = state;
+    const payment = await requestPremiumVerdict();
+    if (payment.status !== "paid") {
+      throw new Error(payment.message);
+    }
+
+    const entitlement = await requestPrecedentEntitlement({
+      orderId: payment.orderId,
+    });
+    if (entitlement.status !== "ready" || !entitlement.entitlementToken) {
+      throw new Error(entitlement.message);
+    }
+
+    const precedentJudgment = await requestPrecedentJudgment({
+      text: sourceText,
+      originalResult: result,
+      entitlementToken: entitlement.entitlementToken,
+    });
+    if (precedentJudgment.status !== "ready") {
+      throw new Error(precedentJudgment.message);
+    }
+
+    setState({
+      screen: "precedent-result",
+      result,
+      sourceText,
+      sharedResultId,
+      report: precedentJudgment.report,
+      disclaimer: precedentJudgment.disclaimer,
+    });
+  };
+
   const renderMediaControl = () => {
     if (state.screen !== "review") {
       return undefined;
@@ -1134,6 +1186,7 @@ function App() {
             sharedResultId: state.sharedResultId,
           })
         }
+        onRequestPrecedentJudgment={handlePrecedentJudgment}
       />
     );
   }
@@ -1142,6 +1195,24 @@ function App() {
     return (
       <RewardChatScreen
         result={state.result}
+        onHome={goHome}
+        onBack={() =>
+          setState({
+            screen: "result",
+            result: state.result,
+            sourceText: state.sourceText,
+            sharedResultId: state.sharedResultId,
+          })
+        }
+      />
+    );
+  }
+
+  if (state.screen === "precedent-result") {
+    return (
+      <PrecedentJudgmentScreen
+        report={state.report}
+        disclaimer={state.disclaimer}
         onHome={goHome}
         onBack={() =>
           setState({

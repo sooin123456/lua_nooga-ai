@@ -19,6 +19,7 @@ type ResultScreenProps = {
   resultShareService?: ReturnType<typeof createResultShareService> | null;
   onRestart(): void;
   onOpenRewardChat?(): void;
+  onRequestPrecedentJudgment?(): Promise<void> | void;
 };
 
 export function ResultScreen({
@@ -28,6 +29,7 @@ export function ResultScreen({
   resultShareService,
   onRestart,
   onOpenRewardChat,
+  onRequestPrecedentJudgment,
 }: ResultScreenProps) {
   const [shareMessage, setShareMessage] = useState<string | null>(null);
   const [isPrecedentConfirmationOpen, setIsPrecedentConfirmationOpen] =
@@ -38,6 +40,8 @@ export function ResultScreen({
   );
   const [isReactionPending, setIsReactionPending] = useState(false);
   const [isShareOptionsOpen, setIsShareOptionsOpen] = useState(false);
+  const [isPrecedentPending, setIsPrecedentPending] = useState(false);
+  const [precedentMessage, setPrecedentMessage] = useState<string | null>(null);
   const configuredResultShareService = useMemo(
     () =>
       resultShareService === undefined
@@ -283,9 +287,41 @@ export function ResultScreen({
             />
             <span>서버 전송과 참고용 분석에 동의합니다.</span>
           </label>
-          <button type="button" disabled={!hasPrecedentConsent}>
-            동의하고 분석하기
+          <button
+            type="button"
+            disabled={
+              !hasPrecedentConsent ||
+              isPrecedentPending ||
+              !onRequestPrecedentJudgment
+            }
+            onClick={async () => {
+              if (!onRequestPrecedentJudgment) {
+                setPrecedentMessage("판례 분석 연결을 준비하고 있어요.");
+                return;
+              }
+
+              setIsPrecedentPending(true);
+              setPrecedentMessage("결제 확인 후 판례 AI가 다시 따져보고 있어요.");
+              try {
+                await onRequestPrecedentJudgment();
+              } catch (error) {
+                setPrecedentMessage(
+                  error instanceof Error
+                    ? error.message
+                    : "판례 AI 분석을 완료하지 못했어요.",
+                );
+              } finally {
+                setIsPrecedentPending(false);
+              }
+            }}
+          >
+            {isPrecedentPending ? "판례 AI 분석 중" : "동의하고 분석하기"}
           </button>
+          {precedentMessage ? (
+            <p className="precedent-confirmation-panel__status" role="status">
+              {precedentMessage}
+            </p>
+          ) : null}
         </section>
       ) : null}
 
