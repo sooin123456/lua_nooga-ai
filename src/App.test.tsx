@@ -93,9 +93,10 @@ function mockIncidentIntake(
 }
 
 async function prepareAndAnalyze(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(
-    screen.getByRole("button", { name: "루아가 사건 정리하기" }),
-  );
+  await user.click(screen.getByRole("button", { name: "루아에게 보내기" }));
+  expect(
+    await screen.findByText("루아가 싸움 일지를 정리하고 있어요"),
+  ).toBeInTheDocument();
   await user.click(
     await screen.findByRole("button", { name: "이대로 판독하기" }),
   );
@@ -230,7 +231,7 @@ describe("App text review flow", () => {
     await user.click(
       screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
     );
-    expect(screen.getByText("싸움 자료를 넣어주세요")).toBeInTheDocument();
+    expect(screen.getByText("루아에게 보낼 자료")).toBeInTheDocument();
 
     fireEvent.popState(window);
 
@@ -241,7 +242,7 @@ describe("App text review flow", () => {
       ).toBeInTheDocument();
     });
     expect(
-      screen.queryByText("싸움 자료를 넣어주세요"),
+      screen.queryByText("루아에게 보낼 자료"),
     ).not.toBeInTheDocument();
   });
 
@@ -518,6 +519,7 @@ describe("App text review flow", () => {
     );
     await prepareAndAnalyze(user);
     await user.click(screen.getByRole("button", { name: "돌아가기" }));
+    await user.click(screen.getByRole("button", { name: "돌아가기" }));
 
     resolveAnalyze({
       status: "ready",
@@ -536,6 +538,43 @@ describe("App text review flow", () => {
     });
 
     expect(screen.queryByText("임시 판독 결과")).not.toBeInTheDocument();
+  });
+
+  it("moves through evidence input, Lua loading, journal confirmation, and result", async () => {
+    const user = userEvent.setup();
+    vi.mocked(analyzeWithAi).mockResolvedValue({
+      status: "ready",
+      result: {
+        verdict: "A가 55% 선넘었어요",
+        partyAPercent: 55,
+        partyBPercent: 45,
+        reasons: ["첫 번째 이유", "두 번째 이유", "세 번째 이유"],
+        advice: "천천히 다시 이야기해 보세요.",
+        safetyLevel: "normal",
+      },
+    });
+
+    await renderAppHome(user);
+    await user.click(
+      screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
+    );
+
+    expect(screen.getByText("루아에게 보낼 자료")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "루아에게 보내기" }));
+
+    expect(
+      await screen.findByText("루아가 싸움 일지를 정리하고 있어요"),
+    ).toBeInTheDocument();
+    expect(await screen.findByText("루아가 정리한 싸움 일지")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "이대로 판독하기" }));
+
+    expect(analyzeWithAi).toHaveBeenCalledWith({
+      text: expect.stringContaining("사용자가 확인한 싸움 일지"),
+      userPerspective: "unknown",
+    });
+    expect(await screen.findByText("오늘의 판정")).toBeInTheDocument();
   });
 
   it("shows free verdict result with reward recommendations and no precedent panel", async () => {
@@ -710,7 +749,7 @@ describe("App text review flow", () => {
     expect(
       await screen.findByText("오늘 무료 판독을 모두 사용했어요."),
     ).toBeInTheDocument();
-    expect(screen.getByText("싸움 자료를 넣어주세요")).toBeInTheDocument();
+    expect(screen.getByText("루아가 정리한 싸움 일지")).toBeInTheDocument();
     expect(screen.queryByText("오늘의 판정")).not.toBeInTheDocument();
   });
 

@@ -13,12 +13,17 @@ import {
   transcribeAudioFile,
 } from "./features/audio/audioAdapter";
 import { RecordingControl } from "./features/audio/RecordingControl";
+import { EvidenceInputScreen } from "./features/input/EvidenceInputScreen";
 import { InputHome } from "./features/input/InputHome";
 import { IntroScreen } from "./features/input/IntroScreen";
 import { inputMethods, type InputMethod } from "./features/input/inputMethods";
-import { TextReview } from "./features/input/TextReview";
+import type {
+  IncidentIntakeInput,
+  IncidentIntakeSummary,
+} from "./features/intake/incidentIntake";
+import { IncidentJournalScreen } from "./features/intake/IncidentJournalScreen";
+import { LuaIntakeLoadingScreen } from "./features/intake/LuaIntakeLoadingScreen";
 import { prepareIncidentIntake } from "./features/intake/incidentIntakeAdapter";
-import type { IncidentIntakeInput } from "./features/intake/incidentIntake";
 import {
   extractTextFromImage,
   ocrFailureMessage,
@@ -85,6 +90,19 @@ type AppState =
       audioFileName?: string;
       ocrSyncKey?: number;
       ocrDeliveredSyncKey?: number;
+    }
+  | {
+      screen: "intake-loading";
+      reviewId: number;
+      input: IncidentIntakeInput;
+      inputMethod: InputMethod;
+    }
+  | {
+      screen: "journal";
+      reviewId: number;
+      input: IncidentIntakeInput;
+      summary: IncidentIntakeSummary;
+      fallbackMessage?: string | null;
     }
   | {
       screen: "result";
@@ -1145,8 +1163,8 @@ function App() {
 
     if (aiJudgment.status === "limited") {
       setState((currentState) =>
-        currentState.screen === "review" && currentState.reviewId === reviewId
-          ? { ...currentState, helperText: aiJudgment.message }
+        currentState.screen === "journal" && currentState.reviewId === reviewId
+          ? { ...currentState, fallbackMessage: aiJudgment.message }
           : currentState,
       );
       return;
@@ -1156,18 +1174,47 @@ function App() {
     setState({ screen: "result", result: aiJudgment.result, sourceText: text });
   };
 
-  const handlePrepareIncident = async (input: IncidentIntakeInput) => {
+  const prepareIncidentForReview = async (
+    input: IncidentIntakeInput,
+    reviewId: number,
+  ) => {
+    const startedAt = Date.now();
     const intake = await prepareIncidentIntake(input);
+    const elapsed = Date.now() - startedAt;
+    const minimumLoadingMs = 1000;
 
-    if (intake.status === "fallback") {
-      setState((currentState) =>
-        currentState.screen === "review"
-          ? { ...currentState, helperText: intake.message }
-          : currentState,
+    if (elapsed < minimumLoadingMs) {
+      await new Promise((resolve) =>
+        window.setTimeout(resolve, minimumLoadingMs - elapsed),
       );
     }
 
-    return intake.summary;
+    if (reviewId !== activeReviewIdRef.current) {
+      return;
+    }
+
+    setState({
+      screen: "journal",
+      reviewId,
+      input,
+      summary: intake.summary,
+      fallbackMessage:
+        intake.status === "fallback"
+          ? "AI 정리가 불안정해서 간단 정리로 먼저 진행할게요."
+          : null,
+    });
+  };
+
+  const handleSubmitEvidence = (
+    input: IncidentIntakeInput,
+    reviewId: number,
+    inputMethod: InputMethod,
+  ) => {
+    setState({ screen: "intake-loading", reviewId, input, inputMethod });
+
+    window.setTimeout(() => {
+      void prepareIncidentForReview(input, reviewId);
+    }, 0);
   };
 
   const handlePrecedentJudgment = async () => {
@@ -1234,7 +1281,7 @@ function App() {
 
   if (state.screen === "review") {
     return (
-      <TextReview
+      <EvidenceInputScreen
         initialText={state.initialText}
         initialTextSyncKey={state.ocrDeliveredSyncKey}
         draftSyncKey={state.ocrSyncKey}
@@ -1245,11 +1292,52 @@ function App() {
             ? (event) => handleScreenshotPaste(event, state.reviewId)
             : undefined
         }
+        onSubmitEvidence={(input) =>
+          handleSubmitEvidence(input, state.reviewId, state.inputMethod)
+        }
+        onBack={goHome}
+      />
+    );
+  }
+
+  if (state.screen === "intake-loading") {
+    return (
+      <LuaIntakeLoadingScreen
+        onBack={() => {
+          const nextReviewId = activeReviewIdRef.current + 1;
+          activeReviewIdRef.current = nextReviewId;
+          setState({
+            screen: "review",
+            reviewId: nextReviewId,
+            inputMethod: state.inputMethod,
+            initialText: state.input.text,
+            helperText: reviewHelpers[state.inputMethod],
+          });
+        }}
+      />
+    );
+  }
+
+  if (state.screen === "journal") {
+    return (
+      <IncidentJournalScreen
+        summary={state.summary}
+        originalText={state.input.text}
+        extraContext={state.input.extraContext}
+        userPerspective={state.input.userPerspective}
+        fallbackMessage={state.fallbackMessage}
         onAnalyze={(text, userPerspective) =>
           handleAnalyze(text, userPerspective, state.reviewId)
         }
-        onPrepareIncident={handlePrepareIncident}
-        onBack={goHome}
+        onBack={() =>
+          setState({
+            screen: "review",
+            reviewId: state.reviewId,
+            inputMethod: "text",
+            initialText: state.input.text,
+            helperText: undefined,
+          })
+        }
       />
     );
   }
