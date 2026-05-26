@@ -74,8 +74,7 @@
   display: grid;
   align-content: start;
   gap: 14px;
-  background:
-    linear-gradient(180deg, #f8f5ff 0%, #f2f3ff 44%, #f7f8fa 100%);
+  background: linear-gradient(180deg, #f8f5ff 0%, #f2f3ff 44%, #f7f8fa 100%);
 }
 
 .screen--result {
@@ -202,6 +201,46 @@
   border-radius: 18px;
   background: #ffffff;
   box-shadow: 0 14px 28px rgba(20, 28, 45, 0.07);
+}
+
+.incident-topic-picker {
+  display: grid;
+  gap: 9px;
+}
+
+.incident-topic-picker strong,
+.extra-context-field span {
+  color: #333d4b;
+  font-size: 14px;
+  font-weight: 1000;
+  line-height: 1.35;
+}
+
+.incident-topic-picker div {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.incident-topic-picker button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #d1d6db;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #4e5968;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.incident-topic-picker button[aria-pressed="true"] {
+  border-color: #191f28;
+  background: #191f28;
+  color: #ffffff;
 }
 
 .text-review__header {
@@ -344,6 +383,16 @@
   outline: 3px solid #d4e8ff;
 }
 
+.extra-context-field {
+  display: grid;
+  gap: 8px;
+}
+
+.extra-context-field textarea {
+  min-height: 88px;
+  font-size: 14px;
+}
+
 .text-review pre {
   max-height: 420px;
   margin: 0;
@@ -398,6 +447,137 @@
 .perspective-selector button:focus-visible {
   outline: 3px solid #90c2ff;
   outline-offset: 2px;
+}
+
+.incident-summary-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #f0d493;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 248, 230, 0.9), #ffffff 56%), #ffffff;
+  box-shadow: 0 14px 28px rgba(84, 63, 12, 0.08);
+}
+
+.incident-summary-card__header {
+  display: grid;
+  gap: 5px;
+}
+
+.incident-summary-card__header span {
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #191f28;
+  color: #ffde82;
+  font-size: 11px;
+  font-weight: 1000;
+}
+
+.incident-summary-card__header h2,
+.incident-summary-card__header p,
+.incident-claims p,
+.incident-issues ol,
+.incident-missing ul,
+.incident-dialogue-preview ul {
+  margin: 0;
+}
+
+.incident-summary-card__header h2 {
+  color: #191f28;
+  font-size: 18px;
+  font-weight: 1000;
+  line-height: 1.25;
+}
+
+.incident-summary-card__header p {
+  color: #4e5968;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.45;
+}
+
+.incident-claims {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.incident-claims article {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px #e5e8eb;
+}
+
+.incident-claims strong,
+.incident-issues strong,
+.incident-missing strong,
+.incident-dialogue-preview strong {
+  color: #191f28;
+  font-size: 13px;
+  font-weight: 1000;
+}
+
+.incident-claims p,
+.incident-issues li,
+.incident-missing li,
+.incident-dialogue-preview li {
+  color: #4e5968;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.incident-issues,
+.incident-missing,
+.incident-dialogue-preview {
+  display: grid;
+  gap: 8px;
+}
+
+.incident-issues ol,
+.incident-missing ul,
+.incident-dialogue-preview ul {
+  display: grid;
+  gap: 6px;
+  padding-left: 18px;
+}
+
+.incident-dialogue-preview {
+  padding: 12px;
+  border-radius: 12px;
+  background: #f7f8fa;
+}
+
+.incident-summary-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 8px;
+}
+
+.incident-summary-actions button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 1000;
+  cursor: pointer;
+}
+
+.incident-summary-actions button:first-child {
+  background: #f2f4f6;
+  color: #333d4b;
+}
+
+.incident-summary-actions button:last-child {
+  background: #191f28;
+  color: #ffffff;
 }
 
 .action-row {
@@ -505,7 +685,11 @@
   padding: 18px;
   border-radius: 8px;
   background:
-    radial-gradient(circle at right top, rgba(242, 5, 26, 0.18), transparent 42%),
+    radial-gradient(
+      circle at right top,
+      rgba(242, 5, 26, 0.18),
+      transparent 42%
+    ),
     #fff5f6;
   animation: result-card-in 320ms ease both;
 }
@@ -559,7 +743,11 @@
   border: 1px solid rgba(255, 190, 77, 0.35);
   border-radius: 14px;
   background:
-    radial-gradient(circle at 50% 92%, rgba(255, 210, 96, 0.34), transparent 38%),
+    radial-gradient(
+      circle at 50% 92%,
+      rgba(255, 210, 96, 0.34),
+      transparent 38%
+    ),
     linear-gradient(180deg, #fff8df, #ffffff);
   color: #191f28;
   animation: result-card-in 360ms ease 80ms both;
@@ -636,7 +824,12 @@
   border-radius: 999px;
   background:
     radial-gradient(circle, rgba(255, 183, 77, 0.58) 0 18%, transparent 19%),
-    conic-gradient(from 20deg, transparent, rgba(255, 183, 77, 0.5), transparent 38%);
+    conic-gradient(
+      from 20deg,
+      transparent,
+      rgba(255, 183, 77, 0.5),
+      transparent 38%
+    );
   opacity: 0.72;
   animation: precedent-spark-pop 1.35s ease 420ms infinite;
 }
@@ -655,7 +848,8 @@
   width: 58px;
   height: 42px;
   transform-origin: 45px 29px;
-  animation: precedent-gavel-hit 1.35s cubic-bezier(0.24, 0.86, 0.38, 1) 420ms infinite;
+  animation: precedent-gavel-hit 1.35s cubic-bezier(0.24, 0.86, 0.38, 1) 420ms
+    infinite;
 }
 
 .animated-percent-bar__gavel::before {
@@ -1067,8 +1261,7 @@
   border: 1px solid #e5e8eb;
   border-radius: 12px;
   background:
-    linear-gradient(180deg, rgba(255, 248, 230, 0.8), #ffffff 64%),
-    #ffffff;
+    linear-gradient(180deg, rgba(255, 248, 230, 0.8), #ffffff 64%), #ffffff;
   box-shadow: 0 12px 28px rgba(25, 31, 40, 0.06);
 }
 
@@ -1204,7 +1397,11 @@
 }
 
 .result-primary-action--reward {
-  --button-background-color: linear-gradient(135deg, #ffd36a, #c78500) !important;
+  --button-background-color: linear-gradient(
+    135deg,
+    #ffd36a,
+    #c78500
+  ) !important;
   --button-color: #191f28 !important;
   background: linear-gradient(135deg, #ffd36a, #c78500) !important;
   color: #191f28 !important;
@@ -1630,7 +1827,11 @@
   aspect-ratio: 1.36;
   border-radius: 7px;
   background:
-    radial-gradient(circle at 72% 28%, rgba(255, 255, 255, 0.92) 0 12%, transparent 13%),
+    radial-gradient(
+      circle at 72% 28%,
+      rgba(255, 255, 255, 0.92) 0 12%,
+      transparent 13%
+    ),
     linear-gradient(135deg, #ffe08a, #ff8f70);
   box-shadow: inset 0 0 0 1px rgba(25, 31, 40, 0.06);
 }
@@ -1643,7 +1844,12 @@
   border-radius: 10px 10px 6px 6px;
   content: "";
   background:
-    linear-gradient(90deg, transparent 44%, rgba(255, 255, 255, 0.75) 45% 55%, transparent 56%),
+    linear-gradient(
+      90deg,
+      transparent 44%,
+      rgba(255, 255, 255, 0.75) 45% 55%,
+      transparent 56%
+    ),
     linear-gradient(180deg, #ffffff 0 18%, #191f28 19% 24%, #ffffff 25% 100%);
   box-shadow:
     0 -12px 0 -5px #191f28,
@@ -1653,19 +1859,31 @@
 
 .reward-candidate-card__thumb--light {
   background:
-    radial-gradient(circle at 72% 28%, rgba(255, 255, 255, 0.92) 0 12%, transparent 13%),
+    radial-gradient(
+      circle at 72% 28%,
+      rgba(255, 255, 255, 0.92) 0 12%,
+      transparent 13%
+    ),
     linear-gradient(135deg, #d9f99d, #7dd3fc);
 }
 
 .reward-candidate-card__thumb--fair {
   background:
-    radial-gradient(circle at 72% 28%, rgba(255, 255, 255, 0.92) 0 12%, transparent 13%),
+    radial-gradient(
+      circle at 72% 28%,
+      rgba(255, 255, 255, 0.92) 0 12%,
+      transparent 13%
+    ),
     linear-gradient(135deg, #fde68a, #fb7185);
 }
 
 .reward-candidate-card__thumb--serious {
   background:
-    radial-gradient(circle at 72% 28%, rgba(255, 255, 255, 0.92) 0 12%, transparent 13%),
+    radial-gradient(
+      circle at 72% 28%,
+      rgba(255, 255, 255, 0.92) 0 12%,
+      transparent 13%
+    ),
     linear-gradient(135deg, #fca5a5, #a78bfa);
 }
 
@@ -1789,7 +2007,12 @@
   border: 1px solid rgba(255, 230, 186, 0.24);
   border-radius: 8px;
   background:
-    linear-gradient(180deg, rgba(5, 12, 23, 0.1), rgba(3, 8, 16, 0.56) 58%, rgba(3, 8, 16, 0.78)),
+    linear-gradient(
+      180deg,
+      rgba(5, 12, 23, 0.1),
+      rgba(3, 8, 16, 0.56) 58%,
+      rgba(3, 8, 16, 0.78)
+    ),
     url("/court-background.png") center / cover no-repeat,
     #101827;
   color: #ffffff;
@@ -1819,9 +2042,21 @@
   inset: 0;
   content: "";
   background:
-    radial-gradient(circle at 50% 6%, rgba(255, 235, 184, 0.58), transparent 25%),
-    radial-gradient(circle at 12% 72%, rgba(255, 221, 151, 0.2), transparent 24%),
-    radial-gradient(circle at 88% 34%, rgba(255, 255, 255, 0.16), transparent 18%);
+    radial-gradient(
+      circle at 50% 6%,
+      rgba(255, 235, 184, 0.58),
+      transparent 25%
+    ),
+    radial-gradient(
+      circle at 12% 72%,
+      rgba(255, 221, 151, 0.2),
+      transparent 24%
+    ),
+    radial-gradient(
+      circle at 88% 34%,
+      rgba(255, 255, 255, 0.16),
+      transparent 18%
+    );
   opacity: 0.8;
 }
 
@@ -2049,7 +2284,15 @@
   left: 16px;
   width: 12px;
   height: 20px;
-  clip-path: polygon(50% 0, 100% 42%, 72% 42%, 72% 100%, 28% 100%, 28% 42%, 0 42%);
+  clip-path: polygon(
+    50% 0,
+    100% 42%,
+    72% 42%,
+    72% 100%,
+    28% 100%,
+    28% 42%,
+    0 42%
+  );
   background: linear-gradient(180deg, #ff8f47, #f04452);
 }
 
@@ -2150,7 +2393,12 @@
   inset: 8px 7px 6px;
   border-radius: 8px;
   background:
-    linear-gradient(90deg, transparent 43%, rgba(0, 95, 56, 0.2) 44% 55%, transparent 56%),
+    linear-gradient(
+      90deg,
+      transparent 43%,
+      rgba(0, 95, 56, 0.2) 44% 55%,
+      transparent 56%
+    ),
     linear-gradient(145deg, #aef0cc, #00bf78);
 }
 
@@ -2346,7 +2594,11 @@
   border: 1px solid rgba(255, 183, 77, 0.45);
   border-radius: 18px;
   background:
-    linear-gradient(180deg, rgba(255, 248, 229, 0.96), rgba(255, 255, 255, 0.98)),
+    linear-gradient(
+      180deg,
+      rgba(255, 248, 229, 0.96),
+      rgba(255, 255, 255, 0.98)
+    ),
     #ffffff;
   box-shadow: 0 16px 36px rgba(255, 183, 77, 0.18);
 }
@@ -2855,14 +3107,12 @@
 .home-battle-transcript {
   gap: 10px;
   background:
-    linear-gradient(180deg, rgba(247, 247, 255, 0.9), #ffffff),
-    #ffffff;
+    linear-gradient(180deg, rgba(247, 247, 255, 0.9), #ffffff), #ffffff;
 }
 
 .home-battle-verdict {
   background:
-    linear-gradient(180deg, rgba(255, 248, 230, 0.82), #ffffff),
-    #ffffff;
+    linear-gradient(180deg, rgba(255, 248, 230, 0.82), #ffffff), #ffffff;
 }
 
 .home-battle-transcript ol {
@@ -2987,7 +3237,8 @@
   right: 0;
   bottom: 0;
   width: 64%;
-  background: #ffffff url("/lua-recommend-card-v2.jpg") right center / cover no-repeat;
+  background: #ffffff url("/lua-recommend-card-v2.jpg") right center / cover
+    no-repeat;
   pointer-events: none;
 }
 

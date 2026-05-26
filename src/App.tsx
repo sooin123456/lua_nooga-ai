@@ -4,7 +4,10 @@ import { Button, Top } from "@toss/tds-mobile";
 import "./App.css";
 import { analyzeWithAi } from "./features/analyzer/freeJudgmentAdapter";
 import { analyzeWithRules } from "./features/analyzer/ruleBasedAnalyzer";
-import type { JudgmentResult, UserPerspective } from "./features/analyzer/types";
+import type {
+  JudgmentResult,
+  UserPerspective,
+} from "./features/analyzer/types";
 import {
   audioTranscriptionFailureMessage,
   transcribeAudioFile,
@@ -14,6 +17,8 @@ import { InputHome } from "./features/input/InputHome";
 import { IntroScreen } from "./features/input/IntroScreen";
 import { inputMethods, type InputMethod } from "./features/input/inputMethods";
 import { TextReview } from "./features/input/TextReview";
+import { prepareIncidentIntake } from "./features/intake/incidentIntakeAdapter";
+import type { IncidentIntakeInput } from "./features/intake/incidentIntake";
 import {
   extractTextFromImage,
   ocrFailureMessage,
@@ -205,7 +210,8 @@ function App() {
   const activeReviewIdRef = useRef(0);
   const ocrSyncKeyRef = useRef(0);
   const screenshotPreviewUrlRef = useRef<string | undefined>(undefined);
-  const roomServiceRef = useRef<ReturnType<typeof createConfiguredRoomService>>();
+  const roomServiceRef =
+    useRef<ReturnType<typeof createConfiguredRoomService>>();
   const resultShareServiceRef =
     useRef<ReturnType<typeof createConfiguredResultShareService>>();
   const initialRoomLoadRef = useRef(false);
@@ -382,9 +388,8 @@ function App() {
 
   const subscribeToRoom = (room: EphemeralRoom) => {
     roomUnsubscribeRef.current?.();
-    roomUnsubscribeRef.current = roomServiceRef.current?.subscribe(
-      room.id,
-      (event) => {
+    roomUnsubscribeRef.current =
+      roomServiceRef.current?.subscribe(room.id, (event) => {
         setState((currentState) => {
           if (currentState.screen !== "room") {
             return currentState;
@@ -429,27 +434,11 @@ function App() {
             messages: [...currentState.messages, event.message],
           };
         });
-      },
-    ) ?? null;
+      }) ?? null;
   };
 
-  const loadRoom = useCallback(async (roomId: string, accessSecret?: string | null) => {
-    setState({
-      screen: "room",
-      room: null,
-      messages: [],
-      participants: [],
-      currentParticipant: null,
-      remainingSeconds: 60,
-      isLoading: true,
-      isExploding: false,
-      errorMessage: null,
-      inviteStatus: null,
-    });
-
-    const roomService = roomServiceRef.current;
-
-    if (!roomService) {
+  const loadRoom = useCallback(
+    async (roomId: string, accessSecret?: string | null) => {
       setState({
         screen: "room",
         room: null,
@@ -457,69 +446,99 @@ function App() {
         participants: [],
         currentParticipant: null,
         remainingSeconds: 60,
-        isLoading: false,
+        isLoading: true,
         isExploding: false,
-        errorMessage:
-          "Supabase URL과 anon key를 넣으면 실시간 판정방에 들어갈 수 있어요.",
+        errorMessage: null,
         inviteStatus: null,
       });
-      return;
-    }
 
-    try {
-      await roomService.cleanupExpiredMessages();
-      const room = await roomService.getRoom(roomId, accessSecret ?? undefined);
+      const roomService = roomServiceRef.current;
 
-      if (!room) {
+      if (!roomService) {
         setState({
           screen: "room",
           room: null,
-        messages: [],
-        participants: [],
-        currentParticipant: null,
-        remainingSeconds: 0,
+          messages: [],
+          participants: [],
+          currentParticipant: null,
+          remainingSeconds: 60,
           isLoading: false,
           isExploding: false,
-          errorMessage: "판정방을 찾지 못했어요. 새 방을 열어주세요.",
+          errorMessage:
+            "Supabase URL과 anon key를 넣으면 실시간 판정방에 들어갈 수 있어요.",
           inviteStatus: null,
         });
         return;
       }
 
-      const messages = await roomService.listMessages(room.id, room.accessSecret);
-      const participants = await roomService.listParticipants(room.id, room.accessSecret);
-      subscribeToRoom(room);
-      setState({
-        screen: "room",
-        room,
-        messages,
-        participants,
-        currentParticipant:
-          participants.find(({ clientKey }) => clientKey === getRoomClientKey()) ?? null,
-        remainingSeconds: getRemainingSeconds({
-          expiresAt: room.expiresAt,
-          startedAt: room.startedAt,
-        }),
-        isLoading: false,
-        isExploding: false,
-        errorMessage: null,
-        inviteStatus: "초대 링크로 판정방에 들어왔어요.",
-      });
-    } catch {
-      setState({
-        screen: "room",
-        room: null,
-        messages: [],
-        participants: [],
-        currentParticipant: null,
-        remainingSeconds: 60,
-        isLoading: false,
-        isExploding: false,
-        errorMessage: "판정방에 들어가지 못했어요. 링크를 다시 확인해 주세요.",
-        inviteStatus: null,
-      });
-    }
-  }, []);
+      try {
+        await roomService.cleanupExpiredMessages();
+        const room = await roomService.getRoom(
+          roomId,
+          accessSecret ?? undefined,
+        );
+
+        if (!room) {
+          setState({
+            screen: "room",
+            room: null,
+            messages: [],
+            participants: [],
+            currentParticipant: null,
+            remainingSeconds: 0,
+            isLoading: false,
+            isExploding: false,
+            errorMessage: "판정방을 찾지 못했어요. 새 방을 열어주세요.",
+            inviteStatus: null,
+          });
+          return;
+        }
+
+        const messages = await roomService.listMessages(
+          room.id,
+          room.accessSecret,
+        );
+        const participants = await roomService.listParticipants(
+          room.id,
+          room.accessSecret,
+        );
+        subscribeToRoom(room);
+        setState({
+          screen: "room",
+          room,
+          messages,
+          participants,
+          currentParticipant:
+            participants.find(
+              ({ clientKey }) => clientKey === getRoomClientKey(),
+            ) ?? null,
+          remainingSeconds: getRemainingSeconds({
+            expiresAt: room.expiresAt,
+            startedAt: room.startedAt,
+          }),
+          isLoading: false,
+          isExploding: false,
+          errorMessage: null,
+          inviteStatus: "초대 링크로 판정방에 들어왔어요.",
+        });
+      } catch {
+        setState({
+          screen: "room",
+          room: null,
+          messages: [],
+          participants: [],
+          currentParticipant: null,
+          remainingSeconds: 60,
+          isLoading: false,
+          isExploding: false,
+          errorMessage:
+            "판정방에 들어가지 못했어요. 링크를 다시 확인해 주세요.",
+          inviteStatus: null,
+        });
+      }
+    },
+    [],
+  );
 
   const startRoom = async () => {
     setState({
@@ -557,8 +576,14 @@ function App() {
     try {
       await roomService.cleanupExpiredMessages();
       const room = await roomService.createRoom({ hostLabel: "A" });
-      const messages = await roomService.listMessages(room.id, room.accessSecret);
-      const participants = await roomService.listParticipants(room.id, room.accessSecret);
+      const messages = await roomService.listMessages(
+        room.id,
+        room.accessSecret,
+      );
+      const participants = await roomService.listParticipants(
+        room.id,
+        room.accessSecret,
+      );
       subscribeToRoom(room);
       if (typeof window !== "undefined") {
         window.history.replaceState(
@@ -603,7 +628,11 @@ function App() {
   };
 
   const copyRoomInvite = async () => {
-    if (state.screen !== "room" || !state.room || typeof window === "undefined") {
+    if (
+      state.screen !== "room" ||
+      !state.room ||
+      typeof window === "undefined"
+    ) {
       return;
     }
 
@@ -625,7 +654,8 @@ function App() {
         currentState.screen === "room"
           ? {
               ...currentState,
-              inviteStatus: "복사가 막혔어요. 주소창 링크를 직접 공유해 주세요.",
+              inviteStatus:
+                "복사가 막혔어요. 주소창 링크를 직접 공유해 주세요.",
             }
           : currentState,
       );
@@ -729,7 +759,8 @@ function App() {
         currentState.screen === "room"
           ? {
               ...currentState,
-              errorMessage: "판정방에 입장하지 못했어요. 닉네임을 다시 확인해 주세요.",
+              errorMessage:
+                "판정방에 입장하지 못했어요. 닉네임을 다시 확인해 주세요.",
             }
           : currentState,
       );
@@ -1009,8 +1040,7 @@ function App() {
       if (transcription.status !== "ready") {
         return {
           ...currentState,
-          helperText:
-            transcription.message || audioTranscriptionFailureMessage,
+          helperText: transcription.message || audioTranscriptionFailureMessage,
           isOcrPending: false,
         };
       }
@@ -1018,7 +1048,8 @@ function App() {
       return {
         ...currentState,
         initialText: transcription.text,
-        helperText: "음성을 텍스트로 바꿨어요. 필요하면 말투만 살짝 다듬어 주세요.",
+        helperText:
+          "음성을 텍스트로 바꿨어요. 필요하면 말투만 살짝 다듬어 주세요.",
         isOcrPending: false,
         ocrDeliveredSyncKey: audioSyncKey,
       };
@@ -1125,6 +1156,20 @@ function App() {
     setState({ screen: "result", result: aiJudgment.result, sourceText: text });
   };
 
+  const handlePrepareIncident = async (input: IncidentIntakeInput) => {
+    const intake = await prepareIncidentIntake(input);
+
+    if (intake.status === "fallback") {
+      setState((currentState) =>
+        currentState.screen === "review"
+          ? { ...currentState, helperText: intake.message }
+          : currentState,
+      );
+    }
+
+    return intake.summary;
+  };
+
   const handlePrecedentJudgment = async () => {
     if (state.screen !== "result") {
       return;
@@ -1203,6 +1248,7 @@ function App() {
         onAnalyze={(text, userPerspective) =>
           handleAnalyze(text, userPerspective, state.reviewId)
         }
+        onPrepareIncident={handlePrepareIncident}
         onBack={goHome}
       />
     );
@@ -1268,7 +1314,9 @@ function App() {
     return (
       <main className="screen screen--result">
         <Top
-          title={<Top.TitleParagraph size={22}>공유 판독 결과</Top.TitleParagraph>}
+          title={
+            <Top.TitleParagraph size={22}>공유 판독 결과</Top.TitleParagraph>
+          }
           subtitleBottom={
             <Top.SubtitleParagraph size={15}>
               {state.isLoading
@@ -1318,7 +1366,9 @@ function App() {
     return <IntroScreen onStart={enterHomeFromIntro} />;
   }
 
-  return <InputHome onCreateRoom={() => void startRoom()} onSelect={handleSelect} />;
+  return (
+    <InputHome onCreateRoom={() => void startRoom()} onSelect={handleSelect} />
+  );
 }
 
 export default App;

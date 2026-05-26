@@ -9,6 +9,7 @@ import {
   extractTextFromImage,
   ocrFailureMessage,
 } from "./features/ocr/ocrAdapter";
+import { prepareIncidentIntake } from "./features/intake/incidentIntakeAdapter";
 import { requestPrecedentEntitlement } from "./features/precedent/precedentEntitlementAdapter";
 import { requestPrecedentJudgment } from "./features/precedent/precedentJudgmentAdapter";
 import { requestPremiumVerdict } from "./features/premium/premiumAdapter";
@@ -30,6 +31,10 @@ vi.mock("./features/audio/audioAdapter", () => ({
   audioTranscriptionFailureMessage:
     "음성을 텍스트로 바꾸지 못했어요. 직접 입력해 주세요.",
   transcribeAudioFile: vi.fn(),
+}));
+
+vi.mock("./features/intake/incidentIntakeAdapter", () => ({
+  prepareIncidentIntake: vi.fn(),
 }));
 
 vi.mock("./features/premium/premiumAdapter", () => ({
@@ -66,7 +71,38 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+function mockIncidentIntake(
+  judgeText = "[루아 사건 접수서]\nA: 테스트\nB: 테스트",
+) {
+  vi.mocked(prepareIncidentIntake).mockResolvedValue({
+    status: "ready",
+    summary: {
+      title: "테스트 싸움",
+      topic: "other",
+      partyA: "첫 번째 사람",
+      partyB: "두 번째 사람",
+      partyAClaim: "첫 번째 사람의 주장",
+      partyBClaim: "두 번째 사람의 주장",
+      issues: ["쟁점 1", "쟁점 2", "쟁점 3"],
+      missingQuestions: [],
+      completeness: "enough",
+      normalizedDialogue: ["A: 테스트", "B: 테스트"],
+      judgeText,
+    },
+  });
+}
+
+async function prepareAndAnalyze(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(
+    screen.getByRole("button", { name: "루아가 사건 정리하기" }),
+  );
+  await user.click(
+    await screen.findByRole("button", { name: "이대로 판독하기" }),
+  );
+}
+
 async function renderAppHome(user: ReturnType<typeof userEvent.setup>) {
+  mockIncidentIntake();
   render(
     <ThemeProvider>
       <App />
@@ -93,7 +129,9 @@ describe("Lua court intro", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/증거를 제출하세요/)).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "판정 시작하기" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "판정 시작하기" }),
+    );
 
     expect(screen.getByText("루아 AI")).toBeInTheDocument();
     expect(localStorage.getItem("lua-nooga-intro-complete")).toBe("true");
@@ -172,10 +210,16 @@ describe("App text review flow", () => {
     expect(
       screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "최근 판정" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "최근 판정" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "최근" })).toBeInTheDocument();
-    expect(screen.queryByText("억울하면 판례로 다시 따지기")).not.toBeInTheDocument();
-    expect(screen.getByText(/현재 무료 판독은 입력 내용을/)).toBeInTheDocument();
+    expect(
+      screen.queryByText("억울하면 판례로 다시 따지기"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/현재 무료 판독은 입력 내용을/),
+    ).toBeInTheDocument();
   });
 
   it("keeps the user inside the app when browser back is pressed", async () => {
@@ -186,15 +230,19 @@ describe("App text review flow", () => {
     await user.click(
       screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
     );
-    expect(screen.getByText("증거 확인")).toBeInTheDocument();
+    expect(screen.getByText("싸움 자료를 넣어주세요")).toBeInTheDocument();
 
     fireEvent.popState(window);
 
     await waitFor(() => {
       expect(screen.getByText("루아 AI")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
+      ).toBeInTheDocument();
     });
-    expect(screen.queryByText("증거 확인")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("싸움 자료를 넣어주세요"),
+    ).not.toBeInTheDocument();
   });
 
   it("runs OCR for a pasted screenshot image and fills review text", async () => {
@@ -468,9 +516,7 @@ describe("App text review flow", () => {
     await user.click(
       screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
     );
-    await user.click(
-      screen.getByRole("button", { name: /무료\s*판독\s*받기/ }),
-    );
+    await prepareAndAnalyze(user);
     await user.click(screen.getByRole("button", { name: "돌아가기" }));
 
     resolveAnalyze({
@@ -510,14 +556,14 @@ describe("App text review flow", () => {
 
     expect(screen.getByText("루아 AI")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "최근" })).toBeInTheDocument();
-    expect(screen.queryByText("억울하면 판례로 다시 따지기")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("억울하면 판례로 다시 따지기"),
+    ).not.toBeInTheDocument();
 
     await user.click(
       screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
     );
-    await user.click(
-      screen.getByRole("button", { name: /무료\s*판독\s*받기/ }),
-    );
+    await prepareAndAnalyze(user);
 
     expect(analyzeWithAi).toHaveBeenCalledWith({
       text: expect.any(String),
@@ -529,8 +575,13 @@ describe("App text review flow", () => {
     await user.click(screen.getByRole("button", { name: "보상받기" }));
 
     expect(screen.getByText("루아 보상 상담소")).toBeInTheDocument();
-    await user.type(screen.getByRole("textbox", { name: "받고 싶은 보상" }), "달달한 거");
-    await user.click(screen.getByRole("button", { name: "루아에게 골라달라 하기" }));
+    await user.type(
+      screen.getByRole("textbox", { name: "받고 싶은 보상" }),
+      "달달한 거",
+    );
+    await user.click(
+      screen.getByRole("button", { name: "루아에게 골라달라 하기" }),
+    );
     expect(screen.getByText("4,900원")).toBeInTheDocument();
     expect(screen.getByText("5,500원")).toBeInTheDocument();
     expect(screen.getByText("5,900원")).toBeInTheDocument();
@@ -538,8 +589,12 @@ describe("App text review flow", () => {
     expect(screen.getByText("확실한 사과")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "홈으로 돌아가기" }));
-    expect(await screen.findByRole("button", { name: "최근" })).toBeInTheDocument();
-    expect(screen.queryByText("억울하면 판례로 다시 따지기")).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "최근" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("억울하면 판례로 다시 따지기"),
+    ).not.toBeInTheDocument();
   });
 
   it("runs the paid precedent AI analysis flow from the result screen", async () => {
@@ -600,9 +655,7 @@ describe("App text review flow", () => {
     await user.click(
       screen.getByRole("button", { name: /카톡 싸움 붙여넣기/ }),
     );
-    await user.click(
-      screen.getByRole("button", { name: /무료\s*판독\s*받기/ }),
-    );
+    await prepareAndAnalyze(user);
 
     await user.click(
       await screen.findByRole("button", {
@@ -626,7 +679,9 @@ describe("App text review flow", () => {
       entitlementToken: "token-1",
     });
     expect(await screen.findByText("판례 AI 판독 완료")).toBeInTheDocument();
-    expect(screen.getByText("판례 기준으로도 A가 68% 선넘었어요")).toBeInTheDocument();
+    expect(
+      screen.getByText("판례 기준으로도 A가 68% 선넘었어요"),
+    ).toBeInTheDocument();
     expect(screen.getByText("대법원 2020다00000")).toBeInTheDocument();
   });
 
@@ -646,9 +701,7 @@ describe("App text review flow", () => {
     await user.click(
       screen.getByRole("button", { name: "나는 첫 번째 사람이에요" }),
     );
-    await user.click(
-      screen.getByRole("button", { name: /무료\s*판독\s*받기/ }),
-    );
+    await prepareAndAnalyze(user);
 
     expect(analyzeWithAi).toHaveBeenCalledWith({
       text: expect.any(String),
@@ -657,7 +710,7 @@ describe("App text review flow", () => {
     expect(
       await screen.findByText("오늘 무료 판독을 모두 사용했어요."),
     ).toBeInTheDocument();
-    expect(screen.getByText("증거 확인")).toBeInTheDocument();
+    expect(screen.getByText("싸움 자료를 넣어주세요")).toBeInTheDocument();
     expect(screen.queryByText("오늘의 판정")).not.toBeInTheDocument();
   });
 
@@ -667,12 +720,12 @@ describe("App text review flow", () => {
     await renderAppHome(user);
 
     await user.click(screen.getByRole("button", { name: /현장 녹음 시작/ }));
-    await user.click(
-      screen.getByRole("button", { name: "녹음 시작하기" }),
-    );
+    await user.click(screen.getByRole("button", { name: "녹음 시작하기" }));
 
     expect(
-      await screen.findByText(/녹음을 지원하지 않아요|마이크 권한을 받지 못했어요/),
+      await screen.findByText(
+        /녹음을 지원하지 않아요|마이크 권한을 받지 못했어요/,
+      ),
     ).toBeInTheDocument();
     expect(transcribeAudioFile).not.toHaveBeenCalled();
 
@@ -731,7 +784,9 @@ describe("App text review flow", () => {
     await user.upload(screen.getByLabelText("녹음 파일 선택"), file);
 
     expect(
-      await screen.findByText("음성을 텍스트로 바꾸지 못했어요. 직접 입력해 주세요."),
+      await screen.findByText(
+        "음성을 텍스트로 바꾸지 못했어요. 직접 입력해 주세요.",
+      ),
     ).toBeInTheDocument();
 
     await user.type(

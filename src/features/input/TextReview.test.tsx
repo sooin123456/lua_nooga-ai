@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import type { IncidentIntakeSummary } from "../intake/incidentIntake";
 import { TextReview } from "./TextReview";
 
 beforeAll(() => {
@@ -29,6 +30,20 @@ function renderTextReview(ui: ReactNode) {
   return render(ui, { wrapper: ThemeWrapper });
 }
 
+const incidentSummary: IncidentIntakeSummary = {
+  title: "답장 지연으로 시작된 싸움",
+  topic: "reply",
+  partyA: "첫 번째 사람",
+  partyB: "두 번째 사람",
+  partyAClaim: "답장이 늦어서 서운했어요.",
+  partyBClaim: "회의 중이라 바로 답하지 못했어요.",
+  issues: ["답장 지연", "사전 설명", "말투"],
+  missingQuestions: ["회의 시간이 미리 공유됐나요?"],
+  completeness: "needs_context",
+  normalizedDialogue: ["A: 왜 답장을 안 해?", "B: 회의였어"],
+  judgeText: "[루아 사건 접수서]\n답장 지연으로 시작된 싸움",
+};
+
 describe("TextReview", () => {
   it("renders an optional media control before the textarea", () => {
     renderTextReview(
@@ -51,27 +66,26 @@ describe("TextReview", () => {
     ).toBeLessThan(controls.indexOf(screen.getByLabelText("분석할 대화 내용")));
   });
 
-  it("requires text before analysis", async () => {
+  it("requires text before preparing an incident", async () => {
     const user = userEvent.setup();
     const onAnalyze = vi.fn();
+    const onPrepareIncident = vi.fn();
 
     renderTextReview(
-      <TextReview initialText="   " onAnalyze={onAnalyze} onBack={vi.fn()} />,
+      <TextReview
+        initialText="   "
+        onAnalyze={onAnalyze}
+        onPrepareIncident={onPrepareIncident}
+        onBack={vi.fn()}
+      />,
     );
 
-    expect(
-      screen.getByRole("button", { name: "무료 판독 받기" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("증거 확인")).toBeInTheDocument();
-    expect(screen.getByText("지금은 증거를 확인하는 단계예요")).toBeInTheDocument();
-    expect(
-      screen.getByText("내용을 고치고 무료 판독을 누르면 루아가 바로 분석을 시작해요."),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("붙여넣은 내용만 확인하면 바로 판독으로 넘어가요."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("루아 사건 접수실")).toBeInTheDocument();
+    expect(screen.getByText("싸움 자료를 넣어주세요")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "무료 판독 받기" }));
+    await user.click(
+      screen.getByRole("button", { name: "루아가 사건 정리하기" }),
+    );
 
     expect(
       screen.getByText("판독할 내용을 먼저 입력해주세요."),
@@ -80,44 +94,61 @@ describe("TextReview", () => {
       "aria-invalid",
       "true",
     );
-    expect(screen.getByLabelText("분석할 대화 내용")).toHaveAttribute(
-      "aria-describedby",
-      "analysis-text-error",
-    );
+    expect(onPrepareIncident).not.toHaveBeenCalled();
     expect(onAnalyze).not.toHaveBeenCalled();
   });
 
-  it("submits edited text", async () => {
+  it("prepares an incident card and submits the judge text", async () => {
     const user = userEvent.setup();
     const onAnalyze = vi.fn();
+    const onPrepareIncident = vi.fn().mockResolvedValue(incidentSummary);
 
     renderTextReview(
       <TextReview
-        initialText="A: 처음 내용"
+        initialText={"A: 왜 답장을 안 해?\nB: 회의였어"}
         onAnalyze={onAnalyze}
+        onPrepareIncident={onPrepareIncident}
         onBack={vi.fn()}
       />,
     );
 
-    const textarea = screen.getByLabelText("분석할 대화 내용");
-    await user.clear(textarea);
-    await user.type(textarea, "  A: 미안해\nB: 다시 이야기하자  ");
-    await user.click(screen.getByRole("button", { name: "무료 판독 받기" }));
+    await user.click(screen.getByRole("button", { name: "연락" }));
+    await user.type(
+      screen.getByRole("textbox", { name: "추가 맥락" }),
+      "연락 문제로 자주 다퉜어요.",
+    );
+    await user.click(
+      screen.getByRole("button", { name: "루아가 사건 정리하기" }),
+    );
+
+    expect(onPrepareIncident).toHaveBeenCalledWith({
+      text: "A: 왜 답장을 안 해?\nB: 회의였어",
+      topic: "reply",
+      extraContext: "연락 문제로 자주 다퉜어요.",
+      userPerspective: "unknown",
+    });
+    expect(await screen.findByText("루아가 정리한 사건")).toBeInTheDocument();
+    expect(screen.getByText("답장 지연")).toBeInTheDocument();
+    expect(screen.getByText("A: 왜 답장을 안 해?")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "이대로 판독하기" }));
 
     expect(onAnalyze).toHaveBeenCalledWith(
-      "A: 미안해\nB: 다시 이야기하자",
+      incidentSummary.judgeText,
       "unknown",
     );
   });
 
-  it("submits the selected first-person perspective", async () => {
+  it("submits the selected first-person perspective to intake and analysis", async () => {
     const user = userEvent.setup();
     const onAnalyze = vi.fn();
+    const onPrepareIncident = vi.fn().mockResolvedValue(incidentSummary);
 
     renderTextReview(
       <TextReview
         initialText="A: 미안해"
         onAnalyze={onAnalyze}
+        onPrepareIncident={onPrepareIncident}
         onBack={vi.fn()}
       />,
     );
@@ -125,35 +156,72 @@ describe("TextReview", () => {
     await user.click(
       screen.getByRole("button", { name: "나는 첫 번째 사람이에요" }),
     );
-    await user.click(screen.getByRole("button", { name: "무료 판독 받기" }));
+    await user.click(
+      screen.getByRole("button", { name: "루아가 사건 정리하기" }),
+    );
+    await user.click(
+      await screen.findByRole("button", { name: "이대로 판독하기" }),
+    );
 
-    expect(onAnalyze).toHaveBeenCalledWith("A: 미안해", "first");
+    expect(onPrepareIncident).toHaveBeenCalledWith(
+      expect.objectContaining({ userPerspective: "first" }),
+    );
+    expect(onAnalyze).toHaveBeenCalledWith(incidentSummary.judgeText, "first");
   });
 
-  it("prevents duplicate submits while analysis is pending", async () => {
+  it("prevents duplicate incident preparation while pending", async () => {
     const user = userEvent.setup();
-    let resolveAnalyze: () => void = () => undefined;
-    const onAnalyze = vi.fn(
+    let resolvePrepare: (summary: IncidentIntakeSummary) => void = () =>
+      undefined;
+    const onPrepareIncident = vi.fn(
       () =>
-        new Promise<void>((resolve) => {
-          resolveAnalyze = resolve;
+        new Promise<IncidentIntakeSummary>((resolve) => {
+          resolvePrepare = resolve;
         }),
     );
 
     renderTextReview(
       <TextReview
         initialText="A: 확인할 내용"
-        onAnalyze={onAnalyze}
+        onAnalyze={vi.fn()}
+        onPrepareIncident={onPrepareIncident}
         onBack={vi.fn()}
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "무료 판독 받기" }));
+    await user.click(
+      screen.getByRole("button", { name: "루아가 사건 정리하기" }),
+    );
 
-    expect(screen.getByRole("button", { name: "판독 중..." })).toBeDisabled();
-    expect(onAnalyze).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole("button", { name: "루아가 정리 중..." }),
+    ).toBeDisabled();
+    expect(onPrepareIncident).toHaveBeenCalledTimes(1);
 
-    resolveAnalyze();
+    resolvePrepare(incidentSummary);
+  });
+
+  it("shows a friendly message when incident preparation fails", async () => {
+    const user = userEvent.setup();
+
+    renderTextReview(
+      <TextReview
+        initialText="A: 확인할 내용"
+        onAnalyze={vi.fn()}
+        onPrepareIncident={vi.fn().mockRejectedValue(new Error("network"))}
+        onBack={vi.fn()}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "루아가 사건 정리하기" }),
+    );
+
+    expect(
+      await screen.findByText(
+        "사건 정리 중 문제가 생겼어요. 잠시 후 다시 시도해주세요.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("shows a friendly message when analysis submission fails", async () => {
@@ -163,18 +231,23 @@ describe("TextReview", () => {
       <TextReview
         initialText="A: 확인할 내용"
         onAnalyze={vi.fn().mockRejectedValue(new Error("network"))}
+        onPrepareIncident={vi.fn().mockResolvedValue(incidentSummary)}
         onBack={vi.fn()}
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "무료 판독 받기" }));
+    await user.click(
+      screen.getByRole("button", { name: "루아가 사건 정리하기" }),
+    );
+    await user.click(
+      await screen.findByRole("button", { name: "이대로 판독하기" }),
+    );
 
     expect(
       await screen.findByText(
         "판독 중 문제가 생겼어요. 잠시 후 다시 시도해주세요.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "무료 판독 받기" })).toBeEnabled();
   });
 
   it("syncs new initial text when the draft has not been edited", async () => {
