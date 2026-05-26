@@ -1,5 +1,5 @@
 import { ThemeProvider } from "@toss/tds-mobile";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
@@ -79,14 +79,14 @@ describe("IncidentJournalScreen", () => {
     const firstItem = screen.getByDisplayValue(
       "첫 번째 사람: 답장이 늦어 서운했어요.",
     );
-    await user.clear(firstItem);
-    await user.type(firstItem, "A는 답장이 늦어 서운했어요.");
+    fireEvent.change(firstItem, {
+      target: { value: "A는 답장이 늦어 서운했어요." },
+    });
     await user.click(screen.getAllByRole("button", { name: "항목 삭제" })[1]);
     await user.click(screen.getByRole("button", { name: "항목 추가" }));
-    await user.type(
-      screen.getByDisplayValue(""),
-      "B는 회의 중이었다고 설명했어요.",
-    );
+    fireEvent.change(screen.getByDisplayValue(""), {
+      target: { value: "B는 회의 중이었다고 설명했어요." },
+    });
     await user.click(screen.getByRole("button", { name: "이대로 판독하기" }));
 
     expect(onAnalyze).toHaveBeenCalledWith(

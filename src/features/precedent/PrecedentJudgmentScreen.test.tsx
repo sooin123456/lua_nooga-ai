@@ -1,6 +1,5 @@
 import { ThemeProvider } from "@toss/tds-mobile";
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { PrecedentJudgmentReport } from "./precedentJudgmentAdapter";
 import { PrecedentJudgmentScreen } from "./PrecedentJudgmentScreen";
@@ -56,13 +55,12 @@ describe("PrecedentJudgmentScreen", () => {
   });
 
   it("navigates back to result or home", async () => {
-    const user = userEvent.setup();
     const onBack = vi.fn();
     const onHome = vi.fn();
     renderScreen(onBack, onHome);
 
-    await user.click(screen.getByRole("button", { name: "판정 결과로 돌아가기" }));
-    await user.click(screen.getByRole("button", { name: "홈으로 돌아가기" }));
+    fireEvent.click(screen.getByRole("button", { name: "판정 결과로 돌아가기" }));
+    fireEvent.click(screen.getByRole("button", { name: "홈으로 돌아가기" }));
 
     expect(onBack).toHaveBeenCalledTimes(1);
     expect(onHome).toHaveBeenCalledTimes(1);
